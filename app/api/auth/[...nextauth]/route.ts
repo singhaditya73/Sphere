@@ -10,20 +10,56 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn(params) {
-      if (!params.user.email) {
+    async signIn({ user, account, profile }) {
+      if (!user.email) {
         return false;
       }
       try {
-        await prismaClient.user.create({
-          data: {
-            email: params.user.email,
-            provider: "Google",
-          },
+        // Check if user exists
+        const existingUser = await prismaClient.user.findUnique({
+          where: { email: user.email },
         });
-      } catch (error) {}
+
+        // Create user if doesn't exist
+        if (!existingUser) {
+          await prismaClient.user.create({
+            data: {
+              email: user.email,
+              provider: "Google",
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
+      }
       return true;
     },
+    async session({ session, token }) {
+      if (session?.user?.email) {
+        // Add user ID to session
+        const dbUser = await prismaClient.user.findUnique({
+          where: { email: session.user.email },
+        });
+        if (dbUser) {
+          session.user.id = dbUser.id;
+        }
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+  },
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+  session: {
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

@@ -61,22 +61,47 @@ export default function DashboardPage() {
 
     setCreatingRoom(true);
     try {
+      console.log("=== CREATING ROOM ===");
+      console.log("Room name:", newRoomName);
+      
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newRoomName }),
       });
 
+      console.log("Response status:", response.status);
+      console.log("Response OK:", response.ok);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+      
+      // Get raw text first
+      const text = await response.text();
+      console.log("Raw response text:", text);
+      
+      // Try to parse JSON
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        alert("Server returned invalid JSON: " + text);
+        return;
+      }
+      
+      console.log("Parsed response data:", data);
+
       if (response.ok) {
-        const data = await response.json();
+        console.log("Room created successfully, redirecting...");
+        setNewRoomName("");
+        setShowCreateForm(false);
         router.push(`/room/${data.room.id}`);
       } else {
-        const error = await response.json();
-        alert(error.message || "Failed to create room");
+        console.error("Create room failed:", data);
+        alert(data.message || data.error || "Failed to create room. Status: " + response.status);
       }
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Failed to create room");
+      alert("Failed to create room: " + String(error));
     } finally {
       setCreatingRoom(false);
     }

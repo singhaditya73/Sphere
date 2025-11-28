@@ -2,7 +2,7 @@ import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 const CreateRoomSchema = z.object({
   name: z.string().min(1).max(100),
@@ -12,20 +12,41 @@ const CreateRoomSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const user = await prismaClient.user.findFirst({
-      where: {
-        email: session?.user?.email ?? "",
-      },
-    });
+    
+    console.log("=== CREATE ROOM DEBUG ===");
+    console.log("Session:", JSON.stringify(session, null, 2));
 
-    if (!user) {
+    if (!session?.user?.email) {
+      console.log("No session or email found");
       return NextResponse.json(
-        { message: "Unauthenticated" },
-        { status: 403 }
+        { message: "Please sign in to create a room" },
+        { status: 401 }
       );
     }
 
-    const data = CreateRoomSchema.parse(await req.json());
+    // Find or create user
+    let user = await prismaClient.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    console.log("User from DB:", user);
+
+    if (!user) {
+      // Create user if doesn't exist (shouldn't happen with proper signIn callback)
+      console.log("Creating user...");
+      user = await prismaClient.user.create({
+        data: {
+          email: session.user.email,
+          provider: "Google",
+        },
+      });
+      console.log("User created:", user);
+    }
+
+    const body = await req.json();
+    console.log("Request body:", body);
+
+    const data = CreateRoomSchema.parse(body);
 
     const room = await prismaClient.room.create({
       data: {
@@ -34,6 +55,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log("Room created successfully:", room);
+    console.log("=== END DEBUG ===");
+
     return NextResponse.json({
       message: "Room created successfully",
       room: {
@@ -41,10 +65,19 @@ export async function POST(req: NextRequest) {
         name: room.name,
         hostId: room.hostId,
       },
-    });
+    }, { status: 200 });
   } catch (e) {
+    console.error("=== CREATE ROOM ERROR ===");
+    console.error("Error:", e);
+    console.error("Error string:", String(e));
+    console.error("=== END ERROR ===");
+    
     return NextResponse.json(
-      { message: "Error creating room", error: String(e) },
+      { 
+        message: "Error creating room", 
+        error: e instanceof Error ? e.message : String(e),
+        stack: e instanceof Error ? e.stack : undefined
+      },
       { status: 500 }
     );
   }

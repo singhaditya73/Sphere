@@ -20,9 +20,6 @@ export default function LoginPage() {
     setIsLoading(true)
     signIn("google", { callbackUrl: "/dashboard" })
   }
-      window.location.href = "/"
-    }, 1500)
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-background/80 relative overflow-hidden">
