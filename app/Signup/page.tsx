@@ -41,8 +41,8 @@ export default function SignupPage() {
 
   const handleGoogleLogin = () => {
     setIsLoading(true)
-    // Use next-auth signIn method instead of the placeholder
-    signIn("google", { callbackUrl: "/" })
+    // Use next-auth signIn method
+    signIn("google", { callbackUrl: "/dashboard" })
   }
 
   return (

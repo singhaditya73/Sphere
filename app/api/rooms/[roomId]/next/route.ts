@@ -1,6 +1,7 @@
 import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "../../../auth/[...nextauth]/route";
 
 // Play next song in queue
 export async function POST(
@@ -8,7 +9,7 @@ export async function POST(
   { params }: { params: { roomId: string } }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     const user = await prismaClient.user.findFirst({
       where: {
         email: session?.user?.email ?? "",

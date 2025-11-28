@@ -5,6 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Music, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,39 +16,10 @@ import { ModeToggle } from "@/components/mode-toggle"
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Store user info in localStorage for demo purposes
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: "Demo User",
-          email: "demo@example.com",
-        }),
-      )
-      // Redirect to home
-      window.location.href = "/"
-    }, 1500)
-  }
-
   const handleGoogleLogin = () => {
     setIsLoading(true)
-    // Implement Google login logic here
-    setTimeout(() => {
-      setIsLoading(false)
-      // Store user info in localStorage for demo purposes
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: "Google User",
-          email: "google@example.com",
-        }),
-      )
-      // Redirect to home
+    signIn("google", { callbackUrl: "/dashboard" })
+  }
       window.location.href = "/"
     }, 1500)
   }
@@ -104,52 +76,8 @@ export default function LoginPage() {
               <CardDescription>Log in to your BeatNet account</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                    className="transition-all border-muted-foreground/20 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link href="/forgot-password" className="text-xs text-primary hover:underline">
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                    className="transition-all border-muted-foreground/20 focus:border-primary"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full transition-all hover:shadow-md hover:shadow-primary/20"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Please wait
-                    </>
-                  ) : (
-                    "Log In"
-                  )}
-                </Button>
-              </form>
-
-              <div className="flex items-center space-x-2 py-2">
-                <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">OR</span>
-                <Separator className="flex-1" />
+              <div className="text-center text-sm text-muted-foreground mb-4">
+                Sign in with your Google account to continue
               </div>
 
               <Button

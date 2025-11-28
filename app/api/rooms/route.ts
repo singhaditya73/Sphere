@@ -2,6 +2,7 @@ import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 const CreateRoomSchema = z.object({
   name: z.string().min(1).max(100),
@@ -10,7 +11,7 @@ const CreateRoomSchema = z.object({
 // Create a new room
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     const user = await prismaClient.user.findFirst({
       where: {
         email: session?.user?.email ?? "",

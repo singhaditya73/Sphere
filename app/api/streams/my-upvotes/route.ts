@@ -1,11 +1,12 @@
 import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 // Get user's upvoted streams in a room
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     const user = await prismaClient.user.findFirst({
       where: {
         email: session?.user?.email ?? "",
