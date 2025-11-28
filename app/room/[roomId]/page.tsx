@@ -91,14 +91,19 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     setAddingStream(true);
     try {
       // Get user ID
-      const userResponse = await fetch(`/api/auth/session`);
-      const sessionData = await userResponse.json();
+      const userResponse = await fetch(`/api/user`);
+      const userData = await userResponse.json();
+      
+      if (!userResponse.ok || !userData.user) {
+        alert("Failed to get user information");
+        return;
+      }
       
       const response = await fetch("/api/streams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          creatorId: sessionData.user?.id,
+          creatorId: userData.user.id,
           url: newStreamUrl,
           roomId: params.roomId,
         }),
