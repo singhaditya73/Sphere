@@ -41,6 +41,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [addingStream, setAddingStream] = useState(false);
   const [newStreamUrl, setNewStreamUrl] = useState("");
   const [upvotingIds, setUpvotingIds] = useState<Set<string>>(new Set());
+  const [myUpvotedStreamIds, setMyUpvotedStreamIds] = useState<Set<string>>(new Set());
 
   const fetchRoomData = async () => {
     try {
@@ -56,14 +57,30 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     }
   };
 
+  const fetchMyUpvotes = async () => {
+    try {
+      const response = await fetch(`/api/streams/my-upvotes?roomId=${params.roomId}`);
+      const data = await response.json();
+      if (response.ok) {
+        setMyUpvotedStreamIds(new Set(data.upvotedStreamIds));
+      }
+    } catch (error) {
+      console.error("Error fetching upvotes:", error);
+    }
+  };
+
   useEffect(() => {
     if (!session) {
       router.push("/login");
       return;
     }
     fetchRoomData();
+    fetchMyUpvotes();
     // Poll for updates every 5 seconds
-    const interval = setInterval(fetchRoomData, 5000);
+    const interval = setInterval(() => {
+      fetchRoomData();
+      fetchMyUpvotes();
+    }, 5000);
     return () => clearInterval(interval);
   }, [session, params.roomId]);
 
@@ -114,6 +131,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
       if (response.ok) {
         fetchRoomData();
+        fetchMyUpvotes();
       }
     } catch (error) {
       console.error("Error voting:", error);
@@ -285,7 +303,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
               </div>
             ) : (
               <div className="space-y-4">
-                {room.queue.map((stream, index) => (
+                {room.queue.map((stream, index) => {
+                  const hasUpvoted = myUpvotedStreamIds.has(stream.id);
+                  return (
                   <div
                     key={stream.id}
                     className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
@@ -307,9 +327,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                       </p>
                     </div>
                     <Button
-                      variant="outline"
+                      variant={hasUpvoted ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handleUpvote(stream.id, false)}
+                      onClick={() => handleUpvote(stream.id, hasUpvoted)}
                       disabled={upvotingIds.has(stream.id)}
                       className="gap-2"
                     >
@@ -321,7 +341,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                       {stream.upvotes}
                     </Button>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </CardContent>
