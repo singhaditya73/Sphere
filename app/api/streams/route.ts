@@ -18,6 +18,7 @@ const CreateStreamSchema = z.object({
     (url) => YT_REGEX.test(url) || SPOTIFY_REGEX.test(url),
     { message: "URL must be a valid YouTube or Spotify link" }
   ),
+  roomId: z.string(),
 });
 
 export async function POST(req: NextRequest) {
@@ -92,7 +93,8 @@ export async function POST(req: NextRequest) {
         type: streamType,
         title,
         smallImg,
-        bigImg
+        bigImg,
+        roomId: data.roomId,
       },
     });
 
@@ -114,12 +116,63 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const creatorId = req.nextUrl.searchParams.get("creatorId");
+  const roomId = req.nextUrl.searchParams.get("roomId");
 
   try {
+    const whereClause: { userId?: string; roomId?: string; played?: boolean } = {};
+    
+    if (creatorId) {
+      whereClause.userId = creatorId;
+    }
+    
+    if (roomId) {
+      whereClause.roomId = roomId;
+      whereClause.played = false;
+    }
+
     const streams = await prismaClient.stream.findMany({
-      where: { userId: creatorId ?? "" },
+      where: whereClause,
+      include: {
+        _count: {
+          select: {
+            upvotes: true,
+          },
+        },
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+      orderBy: roomId ? [
+        {
+          upvotes: {
+            _count: "desc",
+          },
+        },
+        {
+          createdAt: "asc",
+        },
+      ] : {
+        createdAt: "desc",
+      },
     });
-    return NextResponse.json(streams);
+    
+    return NextResponse.json({
+      streams: streams.map(stream => ({
+        id: stream.id,
+        type: stream.type,
+        url: stream.url,
+        title: stream.title,
+        smallImg: stream.smallImg,
+        bigImg: stream.bigImg,
+        upvotes: stream._count.upvotes,
+        addedBy: stream.user.email,
+        active: stream.active,
+        played: stream.played,
+        createdAt: stream.createdAt,
+      })),
+    });
   } catch (e) {
     return NextResponse.json(
       { message: "Error while fetching streams" },
