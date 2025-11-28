@@ -31,12 +31,15 @@ export async function POST (req:NextRequest){
                 streamId:data.streamId
             }
         })
+        return NextResponse.json({
+            message:"Upvoted successfully"
+        }, {
+            status:200
+        })
     } catch(e){
         return NextResponse.json({
-            message:"error while downvoting"
+            message:"error while upvoting"
         }, {
             status:403
         })
-    } 
-   
-}
+    }

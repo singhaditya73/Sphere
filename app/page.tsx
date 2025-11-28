@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Music, Users, Vote, Headphones, Radio, Mic2, Star } from "lucide-react"
+import { ArrowRight, Music, Users, Vote, Headphones, Radio, Mic2,  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Appbar } from "@components/Appbar"
 import { HeroAnimation } from "@/components/hero-animation"
@@ -35,8 +35,8 @@ export default function Home() {
             </p>
             <div className="space-x-4">
               <Button size="lg" asChild className="group hover-lift glow">
-                <Link href="/signup">
-                  Join Now <ArrowRight className="ml-2 h-4 w-4" />
+                <Link href="/dashboard">
+                  Enter Rooms <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="hover-lift">
