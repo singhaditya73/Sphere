@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         userId: data.creatorId,
         url: data.url,
         extractedId,
-        type: streamType,
+        type: streamType as "Youtube" | "Spotify",
         title,
         smallImg,
         bigImg,
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
   const roomId = req.nextUrl.searchParams.get("roomId");
 
   try {
-    const whereClause: { userId?: string; roomId?: string; played?: boolean } = {};
+    const whereClause: any = {};
     
     if (creatorId) {
       whereClause.userId = creatorId;
@@ -127,7 +127,6 @@ export async function GET(req: NextRequest) {
     
     if (roomId) {
       whereClause.roomId = roomId;
-      whereClause.played = false;
     }
 
     const streams = await prismaClient.stream.findMany({
@@ -147,14 +146,14 @@ export async function GET(req: NextRequest) {
       orderBy: roomId ? [
         {
           upvotes: {
-            _count: "desc",
+            _count: "desc" as const,
           },
         },
         {
-          createdAt: "asc",
+          createdAt: "asc" as const,
         },
       ] : {
-        createdAt: "desc",
+        createdAt: "desc" as const,
       },
     });
     
@@ -169,11 +168,9 @@ export async function GET(req: NextRequest) {
         upvotes: stream._count.upvotes,
         addedBy: stream.user.email,
         active: stream.active,
-        played: stream.played,
-        createdAt: stream.createdAt,
       })),
     });
-  } catch (e) {
+  } catch (_e) {
     return NextResponse.json(
       { message: "Error while fetching streams" },
       { status: 500 }
