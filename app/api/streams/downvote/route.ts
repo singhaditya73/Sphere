@@ -37,10 +37,11 @@ export async function POST (req:NextRequest){
         }, {
             status:200
         })
-    } catch(e){
+    } catch(_e){
         return NextResponse.json({
             message:"error while downvoting"
         }, {
             status:403
         })
     }
+}

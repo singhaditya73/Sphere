@@ -29,6 +29,18 @@ model User {
   provider Provider
   streams  Stream[]
   upvote   Upvote[]
+  rooms    Room[]
+}
+
+model Room {
+  id              String   @id @default(cuid())
+  name            String
+  hostId          String
+  host            User     @relation(fields: [hostId], references: [id])
+  streams         Stream[]
+  currentStreamId String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
 }
 
 model Stream {
@@ -40,9 +52,13 @@ model Stream {
   smallImg    String     @default("")
   bigImg      String     @default("")
   active      Boolean    @default(false)
+  played      Boolean    @default(false)
   upvotes     Upvote[]
   userId      String
   user        User       @relation(fields: [userId], references: [id])
+  roomId      String
+  room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
 }
 
 model Upvote {
@@ -50,7 +66,7 @@ model Upvote {
   userId   String
   streamId String
   user     User   @relation(fields: [userId], references: [id])
-  stream   Stream @relation(fields: [streamId], references: [id])
+  stream   Stream @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
   @@unique([userId, streamId])
 }

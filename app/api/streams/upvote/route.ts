@@ -1,5 +1,4 @@
 import { prismaClient } from "@/lib/db";
-import { stream } from "hono/streaming";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import {z} from 'zod'
@@ -36,10 +35,11 @@ export async function POST (req:NextRequest){
         }, {
             status:200
         })
-    } catch(e){
+    } catch(_e){
         return NextResponse.json({
             message:"error while upvoting"
         }, {
             status:403
         })
     }
+}

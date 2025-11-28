@@ -123,6 +123,15 @@ exports.Prisma.UserScalarFieldEnum = {
   provider: 'provider'
 };
 
+exports.Prisma.RoomScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  hostId: 'hostId',
+  currentStreamId: 'currentStreamId',
+  isActive: 'isActive',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.StreamScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -132,7 +141,10 @@ exports.Prisma.StreamScalarFieldEnum = {
   smallImg: 'smallImg',
   bigImg: 'bigImg',
   active: 'active',
-  userId: 'userId'
+  played: 'played',
+  userId: 'userId',
+  roomId: 'roomId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.UpvoteScalarFieldEnum = {
@@ -166,6 +178,7 @@ exports.StreamType = exports.$Enums.StreamType = {
 
 exports.Prisma.ModelName = {
   User: 'User',
+  Room: 'Room',
   Stream: 'Stream',
   Upvote: 'Upvote'
 };
