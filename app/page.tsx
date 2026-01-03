@@ -71,7 +71,7 @@ export default function Home() {
                            </p>
 
                            <div className="flex flex-col sm:flex-row gap-6">
-                               <Button size="lg" asChild className="h-16 px-8 bg-primary text-black hover:bg-white hover:scale-105 transition-all font-bold text-xl rounded-none border-2 border-primary shadow-[4px_4px_0_rgba(255,255,255,0.2)]">
+                               <Button size="lg" asChild className="h-16 px-8 bg-primary text-white hover:text-black hover:bg-white hover:scale-105 transition-all font-bold text-xl rounded-none border-2 border-primary shadow-[4px_4px_0_rgba(255,255,255,0.2)]">
                                    <Link href="/dashboard">INSERT TAPE</Link>
                                </Button>
                                <Button size="lg" variant="outline" asChild className="h-16 px-8 border-2 border-border text-muted-foreground hover:text-foreground hover:border-foreground font-mono rounded-none group">
@@ -117,7 +117,7 @@ export default function Home() {
                             <Vote className="w-24 h-24 text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1} />
                         </div>
                         <h3 className="font-bold font-mono text-xl mb-2 text-foreground group-hover:text-primary transition-colors">Fig 1. Consensus</h3>
-                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
+                        <p className="font-mono text-muted-foreground leading-relaxed text-xs">
                             The system utilizes a democratic algorithm. Tracks with the highest vote velocity move to the top of the queue instantly.
                         </p>
                     </div>
@@ -129,7 +129,7 @@ export default function Home() {
                             <Headphones className="w-24 h-24 text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1} />
                         </div>
                         <h3 className="font-bold font-mono text-xl mb-2 text-foreground group-hover:text-primary transition-colors">Fig 2. Synchronization</h3>
-                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
+                        <p className="font-mono text-muted-foreground leading-relaxed text-xs">
                             Global state management ensures all clients hear the same frequency at the exact same millisecond.
                         </p>
                     </div>
@@ -142,7 +142,7 @@ export default function Home() {
                             <Appbar className="scale-50 opacity-20 grayscale invert dark:invert-0" /> 
                         </div>
                         <h3 className="font-bold font-mono text-xl mb-3 flex items-center gap-2 text-foreground group-hover:text-primary transition-colors">Fig 3. Signal Purity</h3>
-                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
+                        <p className="font-mono text-muted-foreground leading-relaxed text-xs">
                             Advanced filtering algorithms block all commercial interruptions. 100% music throughput efficiency.
                         </p>
                     </div>

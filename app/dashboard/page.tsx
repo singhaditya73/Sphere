@@ -120,7 +120,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-black">
       <header className="fixed top-0 z-50 w-full border-b-4 border-border bg-background/90 backdrop-blur-md">
         <div className="container flex h-20 items-center space-x-4">
           <Appbar />
@@ -168,15 +168,14 @@ export default function DashboardPage() {
                   </Button>
                 ) : (
                   <form onSubmit={handleCreateRoom} className="flex flex-col sm:flex-row gap-4 w-full max-w-lg z-10">
-                    <div className="flex-1 bg-white p-1 rounded-sm transform rotate-1 shadow-md border border-zinc-200 dark:border-0">
+                    <div className="flex-1 rounded-sm border-2 border-border bg-background">
                         <Input
-                          placeholder="WRITE LABEL HERE..."
+                          placeholder="LABEL TAPE..."
                           value={newRoomName}
                           onChange={(e) => setNewRoomName(e.target.value)}
                           disabled={creatingRoom}
                           autoFocus
-                          className="bg-transparent border-0 text-black font-handwriting text-2xl h-12 placeholder:text-zinc-400 focus-visible:ring-0"
-                          style={{ fontFamily: '"Permanent Marker", cursive, sans-serif' }}
+                          className="bg-transparent border-0 text-foreground font-mono text-lg h-12 placeholder:text-muted-foreground focus-visible:ring-0 uppercase"
                         />
                     </div>
                     <Button type="submit" disabled={creatingRoom || !newRoomName.trim()} className="mechanical-btn primary h-auto px-6">

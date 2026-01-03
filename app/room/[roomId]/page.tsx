@@ -284,7 +284,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const isHost = session?.user?.email === room.host.email;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-black">
       <header className="fixed top-0 z-50 w-full border-b-4 border-border bg-background/90 backdrop-blur-md">
         <div className="container flex h-20 items-center space-x-4">
           <Appbar />
@@ -311,7 +311,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         {/* PLAYER DECK */}
         <div className="mb-12 relative z-10">
            {/* Deck Chassis */}
-           <div className="bg-card rounded-lg p-1 shadow-2xl relative border border-border">
+           <div className="bg-card rounded-lg p-1 shadow-2xl relative border border-border group overflow-hidden">
+             {/* Chassis Texture */}
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert -z-0"></div>
              <div className="absolute top-2 left-2 flex gap-1"><div className="screw-head bg-border"></div></div>
              <div className="absolute top-2 right-2 flex gap-1"><div className="screw-head bg-border"></div></div>
              <div className="absolute bottom-2 left-2 flex gap-1"><div className="screw-head bg-border"></div></div>
@@ -555,6 +557,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                  <div className="absolute -right-1 -bottom-1 w-4 h-4 rounded-full border-2 border-border bg-black z-20"></div>
 
                  <div className="bg-card p-8 h-full relative overflow-hidden backdrop-blur-sm shadow-inner">
+                    {/* Back of Case Texture */}
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert z-0"></div>
+                    
                     {/* Dark Texture */}
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
 
