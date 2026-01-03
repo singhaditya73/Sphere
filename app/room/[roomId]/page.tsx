@@ -220,7 +220,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <div className="flex flex-col gap-4">
                 {room.currentStream.type === "Youtube" ? (
                   <iframe
-                    src={`https://yewtu.be/embed/${room.currentStream.extractedId}?autoplay=1`}
+                    src={`https://www.youtube.com/embed/${room.currentStream.extractedId}?autoplay=1`}
                     title="YouTube video player"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
