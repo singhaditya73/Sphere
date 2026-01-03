@@ -11,114 +11,147 @@ import { MusicVisualizer } from "@/components/music-visualizer"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-background overflow-x-hidden selection:bg-primary selection:text-black">
-      <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between">
-          <Appbar />
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-primary selection:text-black overflow-x-hidden">
+      <Appbar />
       
-      <main className="flex-1 pt-24">
-        {/* HERO SECTION */}
-        <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden">
-          {/* Background Grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-20"></div>
-          
-          <div className="container relative z-10 flex flex-col items-center text-center">
-            <div className="inline-block mb-4 px-4 py-1 border border-primary/30 rounded-full bg-primary/5 backdrop-blur-sm animate-pulse-slow">
-              <span className="text-primary font-mono text-sm tracking-widest uppercase">The Future of Audio</span>
-            </div>
-            
-            <h1 className="font-heading text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] leading-none tracking-tighter uppercase mb-6 mix-blend-difference text-white">
-              Sonic <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary animate-gradient">Democracy</span>
-            </h1>
-            
-            <p className="max-w-2xl text-xl sm:text-2xl text-muted-foreground mb-10 font-mono">
-              The crowd controls the aux. <span className="text-primary">Vote.</span> Play. <span className="text-white">Dominate.</span>
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-6 perspective-1000">
-              <Button size="lg" asChild className="h-16 px-10 text-xl font-bold bg-primary text-black hover:bg-white hover:scale-105 transition-all duration-300 shadow-[0_0_40px_rgba(204,255,0,0.4)] rounded-none rotate-y-12 hover:rotate-0">
-                <Link href="/dashboard">
-                  ENTER THE ROOM
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-16 px-10 text-xl font-bold border-white/20 hover:border-primary hover:text-primary hover:bg-primary/10 rounded-none rotate-x-12 hover:rotate-0 transition-all duration-300">
-                <Link href="#how-it-works">SYSTEM SPECS</Link>
-              </Button>
-            </div>
-          </div>
+      <main className="flex-1 flex flex-col">
+        {/* HERO SECTION: THE CASSETTE PACKAGING */}
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-12 overflow-hidden">
+           {/* Packaging Background Texture */}
+           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+           
+           {/* The "Wrapper" Design */}
+           <div className="container relative z-10 max-w-6xl">
+              <div className="border-[12px] border-zinc-800 bg-zinc-900 shadow-2xl relative overflow-hidden group">
+                  {/* Plastic Wrap Reflection */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent pointer-events-none z-20"></div>
 
-          {/* 3D Floating Elements (Decorative) */}
-          <div className="absolute top-1/2 left-10 w-64 h-80 bg-zinc-900 border border-white/10 -z-10 transform -rotate-12 opacity-50 hidden lg:block hover:opacity-100 transition-opacity duration-500">
-             <div className="w-full h-full flex items-center justify-center font-mono text-xs text-white/20">NO SIGNAL</div>
-          </div>
-          <div className="absolute top-1/3 right-10 w-72 h-72 bg-primary/5 border border-primary/20 -z-10 transform rotate-6 rounded-full blur-3xl opacity-50"></div>
-        </section>
+                  {/* Top Strip (Brand) */}
+                  <div className="h-32 bg-zinc-950 relative flex items-center justify-between px-8 border-b-4 border-zinc-800">
+                      <div className="flex flex-col">
+                          <span className="font-heading text-6xl font-black italic tracking-tighter text-zinc-100">BeatNet</span>
+                          <span className="font-mono text-xs tracking-[0.5em] text-zinc-500 uppercase ml-1">High Bias / Chrome</span>
+                      </div>
+                      <div className="flex gap-4">
+                          <div className="border-2 border-primary rounded px-2 py-1 text-primary font-bold font-mono text-sm">90 MIN</div>
+                          <div className="border-2 border-zinc-700 rounded px-2 py-1 text-zinc-500 font-bold font-mono text-sm">IEC II</div>
+                      </div>
+                  </div>
 
-        {/* Featured Playlist Marquee */}
-        <section className="w-full py-12 border-y border-white/10 bg-black overflow-hidden relative">
-           <div className="whitespace-nowrap animate-marquee flex gap-8 items-center text-4xl font-bold text-white/10 font-mono uppercase tracking-widest select-none">
-              <span>Vote Next</span> <span>•</span> <span>Queue It</span> <span>•</span> <span>Live Stream</span> <span>•</span> <span>No Ads</span> <span>•</span> <span>Realtime</span> <span>•</span> <span>Vote Next</span> <span>•</span> <span>Queue It</span>
+                  {/* Main Body (Color Blocks) */}
+                  <div className="bg-zinc-100 relative min-h-[500px] flex flex-col md:flex-row">
+                      {/* Left Stripe (Green) */}
+                      <div className="w-full md:w-1/3 bg-primary p-8 flex flex-col justify-between relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-20 mix-blend-multiply"></div>
+                          
+                          <div>
+                              <Vote className="w-16 h-16 text-black mb-4" />
+                              <h2 className="font-heading text-5xl font-black text-black leading-none mb-2">VOTE<br/>NEXT.</h2>
+                              <p className="font-mono text-black/80 text-sm font-bold">THE DEMOCRATIC<br/>AUDIO SYSTEM.</p>
+                          </div>
+                          
+                          <div className="mt-12">
+                              <span className="block font-black text-9xl text-black/20 -ml-4 leading-none select-none">A</span>
+                          </div>
+                      </div>
+
+                      {/* Right Panel (Hero Content) */}
+                      <div className="w-full md:w-2/3 p-12 flex flex-col justify-center bg-zinc-900 border-l-4 border-zinc-800 relative">
+                           {/* Decorative Diagonal Lines */}
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-zinc-800 via-zinc-900 to-zinc-900 opacity-50"></div>
+
+                           <h1 className="text-5xl md:text-7xl font-heading font-black text-white mb-6 tracking-tight uppercase">
+                               Sonic<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Democracy</span>
+                           </h1>
+
+                           <p className="font-mono text-zinc-400 max-w-md mb-10 leading-relaxed">
+                               Experience high-fidelity collaborative listening. 
+                               Zero latency. Majority rules. 
+                               <span className="text-primary"> No ads. Just vibes.</span>
+                           </p>
+
+                           <div className="flex flex-col sm:flex-row gap-6">
+                               <Button size="lg" asChild className="h-16 px-8 bg-primary text-black hover:bg-white hover:scale-105 transition-all font-bold text-xl rounded-none border-2 border-primary shadow-[4px_4px_0_rgba(255,255,255,0.2)]">
+                                   <Link href="/dashboard">INSERT TAPE</Link>
+                               </Button>
+                               <Button size="lg" variant="outline" asChild className="h-16 px-8 border-2 border-zinc-700 text-zinc-300 hover:text-white hover:border-white font-mono rounded-none group">
+                                   <Link href="#manual">
+                                       READ MANUAL <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                   </Link>
+                               </Button>
+                           </div>
+                      </div>
+                  </div>
+
+                  {/* Bottom Strip (Badges) */}
+                  <div className="bg-zinc-950 py-4 px-8 flex justify-between items-center border-t-4 border-zinc-800">
+                      <div className="flex gap-6 text-zinc-600 font-mono text-xs font-bold uppercase tracking-wider">
+                          <span className="flex items-center gap-2"><Music className="w-4 h-4" /> Noise Reduction ON</span>
+                          <span className="flex items-center gap-2"><Radio className="w-4 h-4" /> Stereo</span>
+                      </div>
+                      <div className="text-zinc-700 font-black text-2xl tracking-tighter">JAPAN</div>
+                  </div>
+              </div>
            </div>
-          <div className="container relative z-10 mt-12 mx-auto max-w-5xl perspective-1000">
-             <div className="transform rotate-x-12 hover:rotate-x-0 transition-transform duration-700">
-                <PlaylistPreview />
-             </div>
-          </div>
         </section>
 
-        <section
-          id="features"
-          className="container space-y-12 py-24 relative"
-        >
-          <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
-            <div className="w-full border-t border-primary/20 mb-8"></div>
-            <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">System <span className="text-primary">Kernel</span></h2>
-            <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7 font-mono">
-              Core modules activated for democratic audio control.
-            </p>
-          </div>
-          <div className="mx-auto grid justify-center gap-6 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-3">
-            <FeatureCard
-              icon={<Vote className="h-10 w-10 text-primary" />}
-              title="Democratic Voting"
-              description="Real-time consensus algorithm. The majority rules the playlist."
-              className="glitch-border bg-black/50"
-            />
-            <FeatureCard
-              icon={<Users className="h-10 w-10 text-primary" />}
-              title="Hive Minds"
-              description="Join existing neural networks (rooms) or spawn your own instance."
-              className="glitch-border bg-black/50"
-            />
-            <FeatureCard
-              icon={<Headphones className="h-10 w-10 text-primary" />}
-              title="Sync Protocol"
-              description="Zero-latency audio synchronization across all connected clients."
-              className="glitch-border bg-black/50"
-            />
-            <FeatureCard
-              icon={<Radio className="h-10 w-10 text-primary" />}
-              title="Broadcast Mode"
-              description="Seize control of the frequency as the designated Operator."
-              className="glitch-border bg-black/50"
-            />
-            <FeatureCard
-              icon={<Mic2 className="h-10 w-10 text-primary" />}
-              title="Signal Discovery"
-              description="Scan for new audio signals and frequencies."
-              className="glitch-border bg-black/50"
-            />
-            <FeatureCard
-              icon={<Music className="h-10 w-10 text-primary" />}
-              title="Data Streams"
-              description="Analyze listening vectors and community trends."
-              className="glitch-border bg-black/50"
-            />
-          </div>
+        {/* FEATURE SECTION: THE MANUAL */}
+        <section id="manual" className="bg-zinc-100 py-24 text-zinc-900 relative">
+            <div className="container max-w-6xl">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-4 border-black p-8 bg-white shadow-xl relative">
+                    {/* Fold Crease */}
+                    <div className="absolute inset-y-0 left-1/2 w-px bg-zinc-200 hidden md:block"></div>
+                    
+                    {/* Header */}
+                    <div className="md:col-span-12 border-b-4 border-black pb-8 mb-8 text-center">
+                        <h2 className="font-heading text-6xl font-black uppercase">Operating Instructions</h2>
+                        <p className="font-mono text-lg mt-2">Model: BN-2025 // System Specs</p>
+                    </div>
+
+                    {/* Fig 1: Voting */}
+                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
+                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000),linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000)] bg-[length:10px_10px] bg-[position:0_0,5px_5px] opacity-5"></div>
+                            <Vote className="w-24 h-24 text-black" strokeWidth={1} />
+                        </div>
+                        <h3 className="font-bold font-mono text-xl mb-2">Fig 1. Consensus</h3>
+                        <p className="font-serif text-zinc-600 leading-relaxed">
+                            The system utilizes a democratic algorithm. Tracks with the highest vote velocity move to the top of the queue instantly.
+                        </p>
+                    </div>
+
+                    {/* Fig 2: Sync */}
+                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
+                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
+                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 via-transparent to-transparent opacity-50"></div>
+                            <Headphones className="w-24 h-24 text-black" strokeWidth={1} />
+                        </div>
+                        <h3 className="font-bold font-mono text-xl mb-2">Fig 2. Synchronization</h3>
+                        <p className="font-serif text-zinc-600 leading-relaxed">
+                            Global state management ensures all clients hear the same frequency at the exact same millisecond.
+                        </p>
+                    </div>
+
+                    {/* Fig 3: No Ads */}
+                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
+                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
+                            <div className="w-full h-px bg-black rotate-45 absolute"></div>
+                            <div className="w-full h-px bg-black -rotate-45 absolute"></div>
+                            <Appbar className="scale-50 opacity-20" /> 
+                        </div>
+                        <h3 className="font-bold font-mono text-xl mb-2">Fig 3. Signal Purity</h3>
+                        <p className="font-serif text-zinc-600 leading-relaxed">
+                            Advanced filtering algorithms block all commercial interruptions. 100% music throughput efficiency.
+                        </p>
+                    </div>
+                    
+                    <div className="md:col-span-12 mt-8 pt-8 border-t-2 border-dashed border-zinc-300 text-center font-mono text-xs text-zinc-400">
+                        BEATNET CORP. © 2025 // PRINTED IN CYBERSPACE
+                    </div>
+                </div>
+            </div>
         </section>
+
         <section id="how-it-works" className="container space-y-6 py-8 md:py-12 lg:py-24 border-t border-white/10">
           <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
              <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">Operating <span className="text-primary">Manual</span></h2>

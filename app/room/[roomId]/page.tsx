@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,30 +47,98 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(100);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const playerRef = useRef<any>(null);
 
   const updateVolume = (newVolume: number) => {
     setVolume(newVolume);
-    const iframe = document.querySelector('iframe');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage(JSON.stringify({
-            "event": "command",
-            "func": "setVolume",
-            "args": [newVolume]
-        }), "*");
+    if (playerRef.current && playerRef.current.setVolume) {
+        playerRef.current.setVolume(newVolume);
     }
   };
 
   const updatePlaybackRate = (rate: number) => {
     setPlaybackRate(rate);
-    const iframe = document.querySelector('iframe');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage(JSON.stringify({
-            "event": "command",
-            "func": "setPlaybackRate",
-            "args": [rate]
-        }), "*");
+    if (playerRef.current && playerRef.current.setPlaybackRate) {
+        playerRef.current.setPlaybackRate(rate);
     }
   };
+
+  const [isApiReady, setIsApiReady] = useState(false);
+
+  useEffect(() => {
+    // Load YouTube IFrame API
+    if (!(window as any).YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        
+        (window as any).onYouTubeIframeAPIReady = () => {
+             console.log("YouTube API Ready");
+             setIsApiReady(true);
+        };
+    } else {
+        setIsApiReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isApiReady && room?.currentStream?.type === 'Youtube' && room.currentStream.extractedId) {
+        // Double check if player instance already exists for this video
+        if (playerRef.current) {
+            // if we are already playing this video, do nothing, otherwise load new video
+            // But for now, safe to destroy and recreate or use loadVideoById
+             if(playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
+                 return;
+             }
+             playerRef.current.destroy();
+        }
+
+        playerRef.current = new (window as any).YT.Player('youtube-player', {
+            height: '100%',
+            width: '100%',
+            videoId: room.currentStream.extractedId,
+            playerVars: {
+                'autoplay': 1,
+                'controls': 0,
+                'modestbranding': 1,
+                'enablejsapi': 1,
+                'origin': window.location.origin
+            },
+            events: {
+                'onReady': (event: any) => {
+                    console.log("Player Ready");
+                    event.target.playVideo();
+                    event.target.setVolume(volume);
+                    event.target.setPlaybackRate(playbackRate);
+                    setIsPlaying(true);
+                    setDuration(event.target.getDuration());
+                },
+                'onStateChange': (event: any) => {
+                        if(event.data === (window as any).YT.PlayerState.PLAYING) setIsPlaying(true);
+                        if(event.data === (window as any).YT.PlayerState.PAUSED) setIsPlaying(false);
+                        if(event.data === (window as any).YT.PlayerState.ENDED) handlePlayNext();
+                }
+            }
+        });
+    }
+  }, [isApiReady, room?.currentStream?.extractedId]);
+
+  // Progress Poller
+  useEffect(() => {
+     const timer = setInterval(() => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+            const time = playerRef.current.getCurrentTime();
+            // Allow manual seek override locally by checking difference? 
+            // For now simple sync
+            setProgress(time);
+            if (!duration) setDuration(playerRef.current.getDuration());
+        }
+     }, 500);
+     return () => clearInterval(timer);
+  }, [duration]);
 
   const fetchRoomData = async () => {
     try {
@@ -180,6 +248,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   const handlePlayNext = async () => {
     try {
+      // Optimistic UI update
+      setIsPlaying(false);
       const response = await fetch(`/api/rooms/${roomId}/next`, {
         method: "POST",
       });
@@ -264,18 +334,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             {room.currentStream ? (
               <div className="flex flex-col gap-8 relative z-0">
                  {/* Tape Window / Visualizer */}
+                  {/* Tape Window / Visualizer */}
                 <div 
-                    className="relative mx-auto w-full max-w-3xl aspect-[21/9] bg-black rounded border-8 border-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden group transition-transform duration-100 ease-in-out"
+                    className="relative mx-auto w-full max-w-3xl aspect-video bg-black rounded border-8 border-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden group transition-transform duration-100 ease-in-out"
                 >
                     {/* The Media (Hidden Player / Thumbnail) */}
                     <div className="absolute inset-0 z-0">
                       {room.currentStream.type === "Youtube" && (
-                         <iframe
-                           src={`https://www.youtube.com/embed/${room.currentStream.extractedId}?autoplay=1&controls=0&modestbranding=1&start=0&enablejsapi=1`}
-                           title="Audio Stream"
-                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                           className="w-full h-full opacity-0 pointer-events-none"
-                         />
+                         <div id="youtube-player" className="w-full h-full opacity-0 pointer-events-none" />
                       )}
                       {room.currentStream.type === "Spotify" && (
                          <iframe
@@ -297,15 +363,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                        <img
                           src={room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`}
                           alt="Album Art"
-                          className="w-full h-full object-cover opacity-60 mix-blend-overlay"
+                          className="w-full h-full object-cover opacity-80 brightness-75"
                        />
-                       {/* Green tint/Noise overlay */}
-                       <div className="absolute inset-0 bg-primary/20 mix-blend-multiply"></div>
                     </div>
                     
                     {/* Tape Reels Animation Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center gap-24 pointer-events-none z-20 opacity-80">
-                       <div className="w-24 h-24 border-8 border-zinc-800 bg-black rounded-full animate-[spin_4s_linear_infinite] flex items-center justify-center shadow-2xl">
+                       <div className={`w-24 h-24 border-8 border-zinc-800 bg-black rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
                           <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
                              <div className="w-full h-full flex items-center justify-center">
                                <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -314,7 +378,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                              </div>
                           </div>
                        </div>
-                       <div className="w-24 h-24 border-8 border-zinc-800 bg-black rounded-full animate-[spin_4s_linear_infinite] flex items-center justify-center shadow-2xl">
+                       <div className={`w-24 h-24 border-8 border-zinc-800 bg-black rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
                           <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
                              <div className="w-full h-full flex items-center justify-center">
                                <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -323,6 +387,45 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                              </div>
                           </div>
                        </div>
+                    </div>
+                </div>
+                
+                {/* Tape Counter / Progress Bar */}
+                 <div className="w-full max-w-3xl mx-auto px-1">
+                    <div 
+                        className="h-8 bg-zinc-900 border-2 border-zinc-700 rounded relative group cursor-pointer overflow-hidden"
+                        onClick={(e) => {
+                            if (!playerRef.current || !duration) return;
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const percent = x / rect.width;
+                            const newTime = percent * duration;
+                            playerRef.current.seekTo(newTime, true);
+                            setProgress(newTime);
+                        }}
+                    >
+                        {/* Digital Numbers Background */}
+                        <div className="absolute inset-0 flex items-center justify-between px-2 font-mono text-[10px] text-zinc-800 pointer-events-none select-none">
+                            <span>00:00</span>
+                            <span>{(duration / 60).toFixed(0).padStart(2, '0')}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
+                        </div>
+                        
+                        {/* Progress Fill */}
+                        <div 
+                            className="absolute top-0 left-0 h-full bg-primary/20 border-r-2 border-primary transition-all duration-100 ease-linear"
+                            style={{ width: `${(progress / duration) * 100}%` }}
+                        ></div>
+                        
+                        {/* Counter Text */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="font-mono font-bold text-primary tracking-[0.2em] text-sm">
+                                {Math.floor(progress / 60).toString().padStart(2, '0')}:{Math.floor(progress % 60).toString().padStart(2, '0')}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-mono text-zinc-600 mt-1 uppercase">
+                        <span>Tape Counter</span>
+                        <span>Memory Stop</span>
                     </div>
                 </div>
                 
@@ -342,14 +445,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     <div className="flex gap-4">
                         <Button 
                             onClick={() => {
-                                const action = isPlaying ? "pauseVideo" : "playVideo";
-                                const iframe = document.querySelector('iframe');
-                                if (iframe && iframe.contentWindow) {
-                                    iframe.contentWindow.postMessage(JSON.stringify({
-                                        "event": "command",
-                                        "func": action,
-                                        "args": []
-                                    }), "*");
+                                if (playerRef.current) {
+                                    if (isPlaying) playerRef.current.pauseVideo();
+                                    else playerRef.current.playVideo();
                                     setIsPlaying(!isPlaying);
                                 }
                             }}
@@ -405,6 +503,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 
                 <div className="mt-8 pt-6 border-t-2 border-zinc-800">
                    <div className="grid grid-cols-2 gap-4">
+                      {/* Local Volume Knob */}
                       <div className="text-center group">
                          <div className="relative w-16 h-16 mx-auto mb-2">
                              {/* Visual Knob */}
@@ -423,34 +522,24 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                                 value={volume}
                                 onChange={(e) => updateVolume(Number(e.target.value))}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                title="Volume Control"
+                                title="Local Volume (Only affects your audio)"
                              />
                          </div>
-                         <span className="font-mono text-[10px] uppercase text-zinc-500 group-hover:text-primary transition-colors">Vol: {volume}%</span>
+                         <span className="font-mono text-[10px] uppercase text-zinc-500 group-hover:text-primary transition-colors">Vol (Local)</span>
                       </div>
-                      <div className="text-center group">
+
+                      {/* Static Bass Knob (Decorative) */}
+                      <div className="text-center group opacity-50 cursor-not-allowed">
                          <div className="relative w-16 h-16 mx-auto mb-2">
                              {/* Visual Knob */}
                              <div 
-                                className="w-full h-full rounded-full bg-zinc-800 border-2 border-zinc-600 shadow-[0_4px_0_#000] flex items-center justify-center transition-transform duration-75"
-                                style={{ transform: `rotate(${((playbackRate - 0.5) / 1.5 * 270) - 135}deg)` }}
+                                className="w-full h-full rounded-full bg-zinc-800 border-2 border-zinc-600 shadow-[0_4px_0_#000] flex items-center justify-center transform rotate-0"
                              >
-                                 <div className="w-1.5 h-4 bg-zinc-400 absolute top-1 rounded-full group-hover:bg-primary transition-colors"></div>
+                                 <div className="w-1.5 h-4 bg-zinc-600 absolute top-1 rounded-full"></div>
                                  <div className="w-12 h-12 rounded-full border border-zinc-700/50"></div>
                              </div>
-                             {/* Interaction */}
-                             <input
-                                type="range"
-                                min="0.5"
-                                max="2"
-                                step="0.1"
-                                value={playbackRate}
-                                onChange={(e) => updatePlaybackRate(Number(e.target.value))}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                title="Tape Speed (0.5x - 2x)"
-                             />
                          </div>
-                         <span className="font-mono text-[10px] uppercase text-zinc-500 group-hover:text-primary transition-colors">Speed: {playbackRate}x</span>
+                         <span className="font-mono text-[10px] uppercase text-zinc-700">Bass (Fixed)</span>
                       </div>
                    </div>
                 </div>
