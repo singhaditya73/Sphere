@@ -120,118 +120,116 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
+      <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
         <div className="container flex h-16 items-center space-x-4">
           <Appbar />
         </div>
       </header>
 
-      <main className="container flex-1 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-bold">Music Rooms</h1>
-          <p className="text-muted-foreground">
-            Join a room to listen and vote on music with others
-          </p>
+      <main className="container flex-1 py-24 relative perspective-1000">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-10"></div>
+        
+        <div className="mb-12 relative z-10 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
+          <div>
+             <h1 className="text-6xl md:text-8xl font-heading font-black text-white uppercase tracking-tighter leading-none mb-2">
+                Room <br/> <span className="text-primary">Console</span>
+             </h1>
+             <p className="text-muted-foreground font-mono text-sm tracking-widest uppercase">
+                // Select a frequency to tune in
+             </p>
+          </div>
+          <div className="bg-primary/10 border border-primary/20 px-4 py-2 font-mono text-xs text-primary animate-pulse">
+             SYSTEM STATUS: ONLINE
+          </div>
         </div>
 
         {/* Create Room Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create a New Room
-            </CardTitle>
-            <CardDescription>
-              Host your own music session and invite others to join
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!showCreateForm ? (
-              <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Room
-              </Button>
-            ) : (
-              <form onSubmit={handleCreateRoom} className="flex gap-2">
-                <Input
-                  placeholder="Enter room name..."
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  disabled={creatingRoom}
-                  autoFocus
-                />
-                <Button type="submit" disabled={creatingRoom || !newRoomName.trim()}>
-                  {creatingRoom ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setNewRoomName("");
-                  }}
-                  disabled={creatingRoom}
-                >
-                  Cancel
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+        <div className="mb-16 relative z-10">
+          <div className="group border border-white/10 bg-black/40 p-1 hover:border-primary/50 transition-colors duration-300">
+             <div className="bg-zinc-900/50 p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
+                   <Plus className="w-24 h-24 text-primary rotate-12" />
+                </div>
+                
+                <h3 className="text-2xl font-bold uppercase mb-2 relative z-10">Initialize New Frequency</h3>
+                <p className="text-muted-foreground font-mono text-sm mb-6 max-w-md relative z-10">Launch a new music room with full creative control.</p>
+                
+                {!showCreateForm ? (
+                  <Button onClick={() => setShowCreateForm(true)} size="lg" className="relative z-10 h-14 px-8 font-bold bg-white text-black hover:bg-primary hover:scale-105 transition-all duration-300 rounded-none uppercase tracking-wide">
+                    Create Room
+                  </Button>
+                ) : (
+                  <form onSubmit={handleCreateRoom} className="flex gap-4 relative z-10 max-w-lg">
+                    <Input
+                      placeholder="ENTER ROOM ID..."
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      disabled={creatingRoom}
+                      autoFocus
+                      className="bg-black border-white/20 h-14 rounded-none font-mono text-lg focus:border-primary focus:ring-0"
+                    />
+                    <Button type="submit" disabled={creatingRoom || !newRoomName.trim()} className="h-14 px-8 bg-primary text-black hover:bg-white rounded-none font-bold uppercase">
+                      {creatingRoom ? <Loader2 className="animate-spin" /> : "LAUNCH"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        setNewRoomName("");
+                      }}
+                      className="h-14 px-6 border-white/20 rounded-none hover:bg-red-500/20 hover:text-red-500 hover:border-red-500"
+                    >
+                      X
+                    </Button>
+                  </form>
+                )}
+             </div>
+          </div>
+        </div>
 
         {/* Active Rooms */}
-        <div>
-          <h2 className="mb-4 text-2xl font-semibold">Active Rooms</h2>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+             <div className="w-3 h-3 bg-primary animate-ping"></div>
+             <h2 className="font-mono text-sm text-muted-foreground tracking-widest uppercase">Active Frequencies ({rooms.length})</h2>
+          </div>
+          
           {rooms.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Music className="mb-4 h-16 w-16 text-muted-foreground" />
-                <p className="mb-2 text-lg font-medium">No active rooms</p>
-                <p className="text-sm text-muted-foreground">
-                  Create a room to get started!
-                </p>
-              </CardContent>
-            </Card>
+            <div className="border border-white/10 border-dashed p-12 flex flex-col items-center justify-center text-center bg-black/20">
+              <Music className="mb-4 h-12 w-12 text-muted-foreground opacity-20" />
+              <p className="text-muted-foreground font-mono">NO SIGNAL DETECTED</p>
+            </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
-                <Card
+                <div
                   key={room.id}
-                  className="transition-all hover:shadow-lg hover:scale-105 cursor-pointer"
+                  className="group relative h-48 perspective-1000 cursor-pointer"
                   onClick={() => handleJoinRoom(room.id)}
                 >
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="truncate">{room.name}</span>
-                      {room.hostEmail === session?.user?.email && (
-                        <Badge variant="secondary">Host</Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription className="truncate">
-                      by {room.hostEmail}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Music className="h-4 w-4" />
-                        <span>{room.streamCount} songs in queue</span>
+                   <div className="absolute inset-0 bg-primary/20 transform translate-x-2 translate-y-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3"></div>
+                   <div className="absolute inset-0 bg-zinc-900 border border-white/10 p-6 flex flex-col justify-between transition-transform duration-300 group-hover:-translate-y-1 group-hover:-translate-x-1 group-hover:bg-zinc-800 group-hover:border-primary">
+                      <div>
+                         <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-bold text-xl uppercase truncate pr-4 text-white group-hover:text-primary transition-colors">{room.name}</h3>
+                            {room.hostEmail === session?.user?.email && (
+                              <Badge variant="outline" className="border-primary text-primary rounded-none text-[10px] tracking-widest uppercase bg-primary/10">HOST</Badge>
+                            )}
+                         </div>
+                         <p className="font-mono text-xs text-muted-foreground truncate uppercase">// {room.hostEmail}</p>
                       </div>
-                      <Button size="sm" variant="ghost">
-                        Join
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      
+                      <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
+                         <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span>{room.streamCount} TRACKS</span>
+                         </div>
+                         <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-2 transition-all" />
+                      </div>
+                   </div>
+                </div>
               ))}
             </div>
           )}

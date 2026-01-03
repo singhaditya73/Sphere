@@ -8,9 +8,10 @@ interface FeatureCardProps {
   icon: ReactNode
   title: string
   description: string
+  className?: string
 }
 
-export function FeatureCard({ icon, title, description }: FeatureCardProps) {
+export function FeatureCard({ icon, title, description, className }: FeatureCardProps) {
   return (
     <motion.div whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
       <Card className="group transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 border-2 border-transparent hover:border-primary/20 overflow-hidden">
