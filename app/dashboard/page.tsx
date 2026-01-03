@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Appbar } from "@/components/Appbar";
-import { Music, Loader2, Plus, ArrowRight } from "lucide-react";
+import { Music, Loader2, Plus, ArrowRight, Disc } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Room {
@@ -120,44 +120,46 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 selection:bg-primary selection:text-black">
-      <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-30 pointer-events-none"></div>
-      <header className="fixed top-0 z-50 w-full border-b-4 border-zinc-800 bg-zinc-900/90 backdrop-blur-md">
+    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
+      <header className="fixed top-0 z-50 w-full border-b-4 border-border bg-background/90 backdrop-blur-md">
         <div className="container flex h-20 items-center space-x-4">
           <Appbar />
         </div>
       </header>
 
       <main className="container flex-1 py-32 relative">
-        <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-zinc-800 pb-8">
-          <div>
-             <div className="inline-block bg-primary text-black font-bold font-mono px-2 py-1 mb-2 transform -rotate-1">
+        <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-border pb-8 relative overflow-hidden p-8 bg-card border-l-4">
+          {/* Header Texture */}
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
+          
+          <div className="relative z-10">
+             <div className="inline-block bg-primary text-primary-foreground font-bold font-mono px-2 py-1 mb-2 transform -rotate-1 shadow-sm">
                 G-7200 SYSTEM
              </div>
-             <h1 className="text-5xl md:text-7xl font-heading font-black text-zinc-200 uppercase tracking-tighter leading-none">
+             <h1 className="text-5xl md:text-7xl font-heading font-black text-foreground uppercase tracking-tighter leading-none">
                 Tape <span className="text-primary">Deck</span>
              </h1>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs text-zinc-500">
-             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-             REC_MODE_ACTIVE
+          <div className="relative z-10 flex items-center gap-2 font-mono text-xs text-muted-foreground bg-background/50 px-3 py-1 rounded-full border border-border/50">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+             SYSTEM ONLINE
           </div>
         </div>
 
-        {/* Create Room Section */}
-        <div className="mb-16 bg-zinc-900 border-2 border-zinc-800 p-2 rounded-lg shadow-xl">
-           <div className="bg-zinc-950 border border-zinc-900 p-8 rounded flex flex-col items-center text-center relative overflow-hidden">
-               <div className="absolute top-4 left-4 flex gap-2">
-                 <div className="screw-head"></div>
-                 <div className="screw-head"></div>
-               </div>
-               <div className="absolute top-4 right-4 flex gap-2">
-                 <div className="screw-head"></div>
-                 <div className="screw-head"></div>
-               </div>
-
-                <h3 className="text-2xl font-bold uppercase text-zinc-300 mb-2 tracking-widest">Master Tape</h3>
-                <p className="text-zinc-500 font-mono text-xs mb-8 uppercase">Insert new cassette to begin recording</p>
+        {/* Create New Room Button/Card */}
+        <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 mb-24">
+            <Card className="p-8 border-4 border-primary bg-secondary/30 relative overflow-hidden group hover:border-primary/80 transition-theme shadow-[8px_8px_0_0_#93a079] hover:shadow-[4px_4px_0_0_#93a079] hover:translate-x-1 hover:translate-y-1">
+                {/* Master Tape Texture */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
+                
+                <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+                    <div>
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-3xl font-heading font-black text-foreground uppercase tracking-tight">Master Tape</h2>
+                            <Disc className="w-8 h-8 text-primary animate-spin-slow" />
+                         </div>
+                        <p className="font-mono text-muted-foreground">Initialize a new broadcast frequency.</p>
+                    </div>
                 
                 {!showCreateForm ? (
                   <Button onClick={() => setShowCreateForm(true)} className="mechanical-btn primary h-14 px-8 text-lg">
@@ -166,7 +168,7 @@ export default function DashboardPage() {
                   </Button>
                 ) : (
                   <form onSubmit={handleCreateRoom} className="flex flex-col sm:flex-row gap-4 w-full max-w-lg z-10">
-                    <div className="flex-1 bg-zinc-100 p-1 rounded-sm transform rotate-1 shadow-md">
+                    <div className="flex-1 bg-white p-1 rounded-sm transform rotate-1 shadow-md border border-zinc-200 dark:border-0">
                         <Input
                           placeholder="WRITE LABEL HERE..."
                           value={newRoomName}
@@ -186,25 +188,26 @@ export default function DashboardPage() {
                         setShowCreateForm(false);
                         setNewRoomName("");
                       }}
-                       className="mechanical-btn h-auto px-4 bg-zinc-800 text-white hover:bg-zinc-700"
+                       className="mechanical-btn h-auto px-4 bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
                     >
                       X
                     </Button>
                   </form>
                 )}
-           </div>
+                </div>
+            </Card>
         </div>
 
         {/* Active Rooms */}
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
-             <h2 className="font-mono text-sm text-zinc-500 font-bold uppercase tracking-widest border-b border-primary/20 pb-1">Tape Collection // {rooms.length}</h2>
+             <h2 className="font-mono text-sm text-muted-foreground font-bold uppercase tracking-widest border-b border-primary/20 pb-1">Tape Collection // {rooms.length}</h2>
           </div>
           
           {rooms.length === 0 ? (
-            <div className="border-4 border-zinc-800 border-dashed p-12 flex flex-col items-center justify-center text-center bg-zinc-900/50 rounded-xl">
-              <Music className="mb-4 h-12 w-12 text-zinc-700" />
-              <p className="text-zinc-600 font-mono uppercase">Shelf Empty</p>
+            <div className="border-4 border-border border-dashed p-12 flex flex-col items-center justify-center text-center bg-card/50 rounded-xl">
+              <Music className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="text-muted-foreground font-mono uppercase">Shelf Empty</p>
             </div>
           ) : (
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -240,8 +243,8 @@ export default function DashboardPage() {
                    <div className="flex items-center justify-between px-2">
                       <div className="screw-head"></div>
                       <div className="flex flex-col items-center">
-                         <span className="text-[8px] text-zinc-500 font-mono uppercase">Type I / Normal</span>
-                         <span className="text-xs font-bold text-zinc-400">{room.streamCount} tracks</span>
+                         <span className="text-[8px] text-zinc-400 font-mono uppercase">Type I / Normal</span>
+                         <span className="text-xs font-bold text-zinc-300">{room.streamCount} tracks</span>
                       </div>
                       <div className="screw-head"></div>
                    </div>

@@ -8,7 +8,11 @@ import { ModeToggle } from "@/components/mode-toggle";
 
 export default function TermsOfServicePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-background/80 relative overflow-hidden">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background selection:bg-primary selection:text-black overflow-hidden relative">
+      {/* Background Texture */}
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay dark:mix-blend-overlay mix-blend-multiply"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black opacity-80 dark:opacity-80 opacity-0"></div>
+
       {/* Animated background elements with deterministic values */}
       <div className="absolute inset-0 -z-10">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -35,21 +39,20 @@ export default function TermsOfServicePage() {
         ))}
       </div>
 
-      <header className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2 group">
+      <header className="absolute top-0 left-0 w-full p-8 z-20">
+        <Link href="/" className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors group font-mono text-sm uppercase tracking-widest">
           <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          <span className="text-sm font-medium">Back to Home</span>
+          <span>Eject / Return</span>
         </Link>
-        <ModeToggle />
       </header>
 
-      <main className="container my-8 space-y-6">
+      <main className="container my-8 space-y-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="border shadow-lg backdrop-blur-sm bg-background/80">
+          <Card className="border-2 shadow-lg backdrop-blur-sm bg-background/80 border-primary/20">
             <CardHeader className="space-y-1 text-center border-b">
               <div className="flex justify-center mb-2">
                 <FileText className="h-10 w-10 text-primary" />

@@ -11,7 +11,7 @@ import { MusicVisualizer } from "@/components/music-visualizer"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-primary selection:text-black overflow-x-hidden">
+    <div className="flex min-h-screen flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-black overflow-x-hidden">
       <Appbar />
       
       <main className="flex-1 flex flex-col">
@@ -22,24 +22,24 @@ export default function Home() {
            
            {/* The "Wrapper" Design */}
            <div className="container relative z-10 max-w-6xl">
-              <div className="border-[12px] border-zinc-800 bg-zinc-900 shadow-2xl relative overflow-hidden group">
+              <div className="border-[12px] border-border bg-card shadow-2xl relative overflow-hidden group">
                   {/* Plastic Wrap Reflection */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent pointer-events-none z-20"></div>
 
                   {/* Top Strip (Brand) */}
-                  <div className="h-32 bg-zinc-950 relative flex items-center justify-between px-8 border-b-4 border-zinc-800">
+                  <div className="h-32 bg-background relative flex items-center justify-between px-8 border-b-4 border-border">
                       <div className="flex flex-col">
-                          <span className="font-heading text-6xl font-black italic tracking-tighter text-zinc-100">BeatNet</span>
+                          <span className="font-heading text-6xl font-black italic tracking-tighter text-foreground">BeatNet</span>
                           <span className="font-mono text-xs tracking-[0.5em] text-zinc-500 uppercase ml-1">High Bias / Chrome</span>
                       </div>
                       <div className="flex gap-4">
                           <div className="border-2 border-primary rounded px-2 py-1 text-primary font-bold font-mono text-sm">90 MIN</div>
-                          <div className="border-2 border-zinc-700 rounded px-2 py-1 text-zinc-500 font-bold font-mono text-sm">IEC II</div>
+                          <div className="border-2 border-muted-foreground/30 rounded px-2 py-1 text-muted-foreground font-bold font-mono text-sm">IEC II</div>
                       </div>
                   </div>
 
                   {/* Main Body (Color Blocks) */}
-                  <div className="bg-zinc-100 relative min-h-[500px] flex flex-col md:flex-row">
+                  <div className="bg-secondary relative min-h-[500px] flex flex-col md:flex-row">
                       {/* Left Stripe (Green) */}
                       <div className="w-full md:w-1/3 bg-primary p-8 flex flex-col justify-between relative overflow-hidden">
                           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-20 mix-blend-multiply"></div>
@@ -56,15 +56,15 @@ export default function Home() {
                       </div>
 
                       {/* Right Panel (Hero Content) */}
-                      <div className="w-full md:w-2/3 p-12 flex flex-col justify-center bg-zinc-900 border-l-4 border-zinc-800 relative">
+                      <div className="w-full md:w-2/3 p-12 flex flex-col justify-center bg-card border-l-4 border-border relative">
                            {/* Decorative Diagonal Lines */}
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-zinc-800 via-zinc-900 to-zinc-900 opacity-50"></div>
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-border via-card to-card opacity-50"></div>
 
-                           <h1 className="text-5xl md:text-7xl font-heading font-black text-white mb-6 tracking-tight uppercase">
+                           <h1 className="text-5xl md:text-7xl font-heading font-black text-foreground mb-6 tracking-tight uppercase">
                                Sonic<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Democracy</span>
                            </h1>
 
-                           <p className="font-mono text-zinc-400 max-w-md mb-10 leading-relaxed">
+                           <p className="font-mono text-muted-foreground max-w-md mb-10 leading-relaxed">
                                Experience high-fidelity collaborative listening. 
                                Zero latency. Majority rules. 
                                <span className="text-primary"> No ads. Just vibes.</span>
@@ -74,7 +74,7 @@ export default function Home() {
                                <Button size="lg" asChild className="h-16 px-8 bg-primary text-black hover:bg-white hover:scale-105 transition-all font-bold text-xl rounded-none border-2 border-primary shadow-[4px_4px_0_rgba(255,255,255,0.2)]">
                                    <Link href="/dashboard">INSERT TAPE</Link>
                                </Button>
-                               <Button size="lg" variant="outline" asChild className="h-16 px-8 border-2 border-zinc-700 text-zinc-300 hover:text-white hover:border-white font-mono rounded-none group">
+                               <Button size="lg" variant="outline" asChild className="h-16 px-8 border-2 border-border text-muted-foreground hover:text-foreground hover:border-foreground font-mono rounded-none group">
                                    <Link href="#manual">
                                        READ MANUAL <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                    </Link>
@@ -84,7 +84,7 @@ export default function Home() {
                   </div>
 
                   {/* Bottom Strip (Badges) */}
-                  <div className="bg-zinc-950 py-4 px-8 flex justify-between items-center border-t-4 border-zinc-800">
+                  <div className="bg-background py-4 px-8 flex justify-between items-center border-t-4 border-border">
                       <div className="flex gap-6 text-zinc-600 font-mono text-xs font-bold uppercase tracking-wider">
                           <span className="flex items-center gap-2"><Music className="w-4 h-4" /> Noise Reduction ON</span>
                           <span className="flex items-center gap-2"><Radio className="w-4 h-4" /> Stereo</span>
@@ -96,51 +96,53 @@ export default function Home() {
         </section>
 
         {/* FEATURE SECTION: THE MANUAL */}
-        <section id="manual" className="bg-zinc-100 py-24 text-zinc-900 relative">
+        <section id="manual" className="bg-background py-24 text-foreground relative">
+             {/* Texture specifically for manual paper feel */}
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-30 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
             <div className="container max-w-6xl">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-4 border-black p-8 bg-white shadow-xl relative">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-4 border-border p-8 bg-card shadow-xl relative">
                     {/* Fold Crease */}
-                    <div className="absolute inset-y-0 left-1/2 w-px bg-zinc-200 hidden md:block"></div>
+                    <div className="absolute inset-y-0 left-1/2 w-px bg-border hidden md:block"></div>
                     
                     {/* Header */}
-                    <div className="md:col-span-12 border-b-4 border-black pb-8 mb-8 text-center">
-                        <h2 className="font-heading text-6xl font-black uppercase">Operating Instructions</h2>
-                        <p className="font-mono text-lg mt-2">Model: BN-2025 // System Specs</p>
+                    <div className="md:col-span-12 border-b-4 border-border pb-8 mb-8 text-center">
+                        <h2 className="font-heading text-6xl font-black uppercase text-foreground">Operating Instructions</h2>
+                        <p className="font-mono text-lg mt-2 text-muted-foreground">Model: BN-2025 // System Specs</p>
                     </div>
 
                     {/* Fig 1: Voting */}
-                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
-                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
-                            <div className="absolute inset-0 bg-[linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000),linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000)] bg-[length:10px_10px] bg-[position:0_0,5px_5px] opacity-5"></div>
-                            <Vote className="w-24 h-24 text-black" strokeWidth={1} />
+                    <div className="md:col-span-4 p-4 border-2 border-border hover:border-primary transition-colors group">
+                        <div className="aspect-square bg-background border border-border mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-primary/50 transition-colors">
+                            <div className="absolute inset-0 bg-[linear-gradient(45deg,#333_25%,transparent_25%,transparent_75%,#333_75%,#333),linear-gradient(45deg,#333_25%,transparent_25%,transparent_75%,#333_75%,#333)] bg-[length:10px_10px] bg-[position:0_0,5px_5px] opacity-10"></div>
+                            <Vote className="w-24 h-24 text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1} />
                         </div>
-                        <h3 className="font-bold font-mono text-xl mb-2">Fig 1. Consensus</h3>
-                        <p className="font-serif text-zinc-600 leading-relaxed">
+                        <h3 className="font-bold font-mono text-xl mb-2 text-foreground group-hover:text-primary transition-colors">Fig 1. Consensus</h3>
+                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
                             The system utilizes a democratic algorithm. Tracks with the highest vote velocity move to the top of the queue instantly.
                         </p>
                     </div>
 
                     {/* Fig 2: Sync */}
-                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
-                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
-                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 via-transparent to-transparent opacity-50"></div>
-                            <Headphones className="w-24 h-24 text-black" strokeWidth={1} />
+                    <div className="md:col-span-4 p-4 border-2 border-border hover:border-primary transition-colors group">
+                        <div className="aspect-square bg-background border border-border mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-primary/50 transition-colors">
+                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-border via-transparent to-transparent opacity-50"></div>
+                            <Headphones className="w-24 h-24 text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1} />
                         </div>
-                        <h3 className="font-bold font-mono text-xl mb-2">Fig 2. Synchronization</h3>
-                        <p className="font-serif text-zinc-600 leading-relaxed">
+                        <h3 className="font-bold font-mono text-xl mb-2 text-foreground group-hover:text-primary transition-colors">Fig 2. Synchronization</h3>
+                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
                             Global state management ensures all clients hear the same frequency at the exact same millisecond.
                         </p>
                     </div>
 
                     {/* Fig 3: No Ads */}
-                    <div className="md:col-span-4 p-4 border-2 border-zinc-200 hover:border-black transition-colors">
-                        <div className="aspect-square bg-zinc-50 border border-zinc-200 mb-4 flex items-center justify-center relative overflow-hidden">
-                            <div className="w-full h-px bg-black rotate-45 absolute"></div>
-                            <div className="w-full h-px bg-black -rotate-45 absolute"></div>
-                            <Appbar className="scale-50 opacity-20" /> 
+                    <div className="md:col-span-4 p-4 border-2 border-border hover:border-primary transition-colors group">
+                        <div className="aspect-square bg-background border border-border mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-primary/50 transition-colors">
+                            <div className="w-full h-px bg-border rotate-45 absolute"></div>
+                            <div className="w-full h-px bg-border -rotate-45 absolute"></div>
+                            <Appbar className="scale-50 opacity-20 grayscale invert dark:invert-0" /> 
                         </div>
-                        <h3 className="font-bold font-mono text-xl mb-2">Fig 3. Signal Purity</h3>
-                        <p className="font-serif text-zinc-600 leading-relaxed">
+                        <h3 className="font-bold font-mono text-xl mb-3 flex items-center gap-2 text-foreground group-hover:text-primary transition-colors">Fig 3. Signal Purity</h3>
+                        <p className="font-serif text-muted-foreground leading-relaxed text-sm">
                             Advanced filtering algorithms block all commercial interruptions. 100% music throughput efficiency.
                         </p>
                     </div>
@@ -192,24 +194,7 @@ export default function Home() {
              </div>
           </div>
         </section>
-        <section className="container py-6 md:py-12 lg:py-24 px-4 sm:px-6">
-          <div className="mx-auto max-w-[58rem] space-y-6 bg-primary px-6 py-10 text-black border border-white/20 rounded-none sm:px-12 sm:py-16 md:px-16 md:py-20 lg:px-24 lg:py-24 xl:px-32 xl:py-28 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-            <h2 className="font-heading text-3xl leading-[1.1] sm:text-4xl md:text-5xl text-center uppercase tracking-tighter relative z-10">
-              Initialize Protocol?
-            </h2>
-            <p className="leading-normal text-black/80 text-sm sm:text-base md:text-lg sm:leading-7 text-center font-mono relative z-10">
-              Join the network. No credentials required for basic access.
-            </p>
-            <div className="flex justify-center relative z-10">
-              <Button size="lg" className="mt-4 group w-full sm:w-auto bg-black text-white hover:bg-white hover:text-black border-0 rounded-none h-14 px-8 text-lg font-bold uppercase transition-all shadow-[8px_8px_0_0_rgba(0,0,0,0.2)] hover:shadow-none hover:translate-x-1 hover:translate-y-1" asChild>
-                <Link href="/signup">
-                  EXECUTE <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+
       </main>
       <footer className="border-t border-white/10 py-6 md:py-0 bg-black">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">

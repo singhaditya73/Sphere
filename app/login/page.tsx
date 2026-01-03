@@ -21,10 +21,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 selection:bg-primary selection:text-black overflow-hidden relative">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background selection:bg-primary selection:text-black overflow-hidden relative">
       {/* Background Texture */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black opacity-80"></div>
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay dark:mix-blend-overlay mix-blend-multiply"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black opacity-80 dark:opacity-80 opacity-0"></div>
       
       {/* Back Link */}
       <header className="absolute top-0 left-0 w-full p-8 z-20">
@@ -36,7 +36,7 @@ export default function LoginPage() {
 
       <main className="w-full max-w-md relative z-10 p-4">
         {/* The Card / Access Module */}
-        <div className="bg-zinc-900 border-2 border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+        <div className="bg-card border-2 border-border shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
            {/* Top Stripe */}
            <div className="h-2 bg-primary w-full"></div>
            
@@ -45,7 +45,7 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.2)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none opacity-20"></div>
 
               <div className="flex justify-center mb-8 relative">
-                <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center border-4 border-zinc-700 shadow-inner relative">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center border-4 border-border shadow-inner relative">
                     <Music className="h-8 w-8 text-primary animate-pulse" />
                     {/* Rotating Ring */}
                     <div className="absolute inset-0 border-t-2 border-primary rounded-full animate-spin [animation-duration:3s]"></div>
@@ -53,14 +53,14 @@ export default function LoginPage() {
               </div>
 
               <div className="text-center mb-8">
-                <h1 className="text-3xl font-heading font-black uppercase text-zinc-100 tracking-tighter mb-2">BeatNet<span className="text-primary"> // Access</span></h1>
-                <p className="font-mono text-xs text-zinc-500 uppercase tracking-[0.2em]">Identify to Proceed</p>
+                <h1 className="text-3xl font-heading font-black uppercase text-foreground tracking-tighter mb-2">BeatNet<span className="text-primary"> // Access</span></h1>
+                <p className="font-mono text-xs text-muted-foreground uppercase tracking-[0.2em]">Identify to Proceed</p>
               </div>
 
               <div className="space-y-6">
                 <Button
                   variant="outline"
-                  className="w-full h-14 bg-zinc-800 border-2 border-zinc-700 text-zinc-300 hover:bg-zinc-100 hover:text-black hover:border-white transition-all font-mono uppercase tracking-wider relative overflow-hidden group/btn"
+                  className="w-full h-14 bg-background border-2 border-border text-foreground hover:bg-primary hover:text-primary-foreground hover:border-border transition-all font-mono uppercase tracking-wider relative overflow-hidden group/btn"
                   onClick={handleGoogleLogin}
                   disabled={isLoading}
                 >
@@ -81,7 +81,7 @@ export default function LoginPage() {
                   )}
                 </Button>
                 
-                <div className="flex items-center justify-between text-[10px] font-mono text-zinc-600 uppercase pt-4 border-t border-dashed border-zinc-800">
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase pt-4 border-t border-dashed border-border">
                     <span>Secured Connection</span>
                     <span>Class 2 Auth</span>
                 </div>
