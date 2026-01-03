@@ -120,114 +120,137 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
-      <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
-        <div className="container flex h-16 items-center space-x-4">
+    <div className="flex min-h-screen flex-col bg-zinc-950 selection:bg-primary selection:text-black">
+      <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-30 pointer-events-none"></div>
+      <header className="fixed top-0 z-50 w-full border-b-4 border-zinc-800 bg-zinc-900/90 backdrop-blur-md">
+        <div className="container flex h-20 items-center space-x-4">
           <Appbar />
         </div>
       </header>
 
-      <main className="container flex-1 py-24 relative perspective-1000">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-10"></div>
-        
-        <div className="mb-12 relative z-10 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
+      <main className="container flex-1 py-32 relative">
+        <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-zinc-800 pb-8">
           <div>
-             <h1 className="text-6xl md:text-8xl font-heading font-black text-white uppercase tracking-tighter leading-none mb-2">
-                Room <br/> <span className="text-primary">Console</span>
+             <div className="inline-block bg-primary text-black font-bold font-mono px-2 py-1 mb-2 transform -rotate-1">
+                G-7200 SYSTEM
+             </div>
+             <h1 className="text-5xl md:text-7xl font-heading font-black text-zinc-200 uppercase tracking-tighter leading-none">
+                Tape <span className="text-primary">Deck</span>
              </h1>
-             <p className="text-muted-foreground font-mono text-sm tracking-widest uppercase">
-                // Select a frequency to tune in
-             </p>
           </div>
-          <div className="bg-primary/10 border border-primary/20 px-4 py-2 font-mono text-xs text-primary animate-pulse">
-             SYSTEM STATUS: ONLINE
+          <div className="flex items-center gap-2 font-mono text-xs text-zinc-500">
+             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+             REC_MODE_ACTIVE
           </div>
         </div>
 
         {/* Create Room Section */}
-        <div className="mb-16 relative z-10">
-          <div className="group border border-white/10 bg-black/40 p-1 hover:border-primary/50 transition-colors duration-300">
-             <div className="bg-zinc-900/50 p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
-                   <Plus className="w-24 h-24 text-primary rotate-12" />
-                </div>
-                
-                <h3 className="text-2xl font-bold uppercase mb-2 relative z-10">Initialize New Frequency</h3>
-                <p className="text-muted-foreground font-mono text-sm mb-6 max-w-md relative z-10">Launch a new music room with full creative control.</p>
+        <div className="mb-16 bg-zinc-900 border-2 border-zinc-800 p-2 rounded-lg shadow-xl">
+           <div className="bg-zinc-950 border border-zinc-900 p-8 rounded flex flex-col items-center text-center relative overflow-hidden">
+               <div className="absolute top-4 left-4 flex gap-2">
+                 <div className="screw-head"></div>
+                 <div className="screw-head"></div>
+               </div>
+               <div className="absolute top-4 right-4 flex gap-2">
+                 <div className="screw-head"></div>
+                 <div className="screw-head"></div>
+               </div>
+
+                <h3 className="text-2xl font-bold uppercase text-zinc-300 mb-2 tracking-widest">Master Tape</h3>
+                <p className="text-zinc-500 font-mono text-xs mb-8 uppercase">Insert new cassette to begin recording</p>
                 
                 {!showCreateForm ? (
-                  <Button onClick={() => setShowCreateForm(true)} size="lg" className="relative z-10 h-14 px-8 font-bold bg-white text-black hover:bg-primary hover:scale-105 transition-all duration-300 rounded-none uppercase tracking-wide">
-                    Create Room
+                  <Button onClick={() => setShowCreateForm(true)} className="mechanical-btn primary h-14 px-8 text-lg">
+                    <Plus className="mr-2 h-5 w-5" />
+                    Insert Tape
                   </Button>
                 ) : (
-                  <form onSubmit={handleCreateRoom} className="flex gap-4 relative z-10 max-w-lg">
-                    <Input
-                      placeholder="ENTER ROOM ID..."
-                      value={newRoomName}
-                      onChange={(e) => setNewRoomName(e.target.value)}
-                      disabled={creatingRoom}
-                      autoFocus
-                      className="bg-black border-white/20 h-14 rounded-none font-mono text-lg focus:border-primary focus:ring-0"
-                    />
-                    <Button type="submit" disabled={creatingRoom || !newRoomName.trim()} className="h-14 px-8 bg-primary text-black hover:bg-white rounded-none font-bold uppercase">
-                      {creatingRoom ? <Loader2 className="animate-spin" /> : "LAUNCH"}
+                  <form onSubmit={handleCreateRoom} className="flex flex-col sm:flex-row gap-4 w-full max-w-lg z-10">
+                    <div className="flex-1 bg-zinc-100 p-1 rounded-sm transform rotate-1 shadow-md">
+                        <Input
+                          placeholder="WRITE LABEL HERE..."
+                          value={newRoomName}
+                          onChange={(e) => setNewRoomName(e.target.value)}
+                          disabled={creatingRoom}
+                          autoFocus
+                          className="bg-transparent border-0 text-black font-handwriting text-2xl h-12 placeholder:text-zinc-400 focus-visible:ring-0"
+                          style={{ fontFamily: '"Permanent Marker", cursive, sans-serif' }}
+                        />
+                    </div>
+                    <Button type="submit" disabled={creatingRoom || !newRoomName.trim()} className="mechanical-btn primary h-auto px-6">
+                      {creatingRoom ? <Loader2 className="animate-spin" /> : "PRODUCE"}
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
                       onClick={() => {
                         setShowCreateForm(false);
                         setNewRoomName("");
                       }}
-                      className="h-14 px-6 border-white/20 rounded-none hover:bg-red-500/20 hover:text-red-500 hover:border-red-500"
+                       className="mechanical-btn h-auto px-4 bg-zinc-800 text-white hover:bg-zinc-700"
                     >
                       X
                     </Button>
                   </form>
                 )}
-             </div>
-          </div>
+           </div>
         </div>
 
         {/* Active Rooms */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-             <div className="w-3 h-3 bg-primary animate-ping"></div>
-             <h2 className="font-mono text-sm text-muted-foreground tracking-widest uppercase">Active Frequencies ({rooms.length})</h2>
+          <div className="flex items-center justify-between mb-8">
+             <h2 className="font-mono text-sm text-zinc-500 font-bold uppercase tracking-widest border-b border-primary/20 pb-1">Tape Collection // {rooms.length}</h2>
           </div>
           
           {rooms.length === 0 ? (
-            <div className="border border-white/10 border-dashed p-12 flex flex-col items-center justify-center text-center bg-black/20">
-              <Music className="mb-4 h-12 w-12 text-muted-foreground opacity-20" />
-              <p className="text-muted-foreground font-mono">NO SIGNAL DETECTED</p>
+            <div className="border-4 border-zinc-800 border-dashed p-12 flex flex-col items-center justify-center text-center bg-zinc-900/50 rounded-xl">
+              <Music className="mb-4 h-12 w-12 text-zinc-700" />
+              <p className="text-zinc-600 font-mono uppercase">Shelf Empty</p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
                 <div
                   key={room.id}
-                  className="group relative h-48 perspective-1000 cursor-pointer"
+                  className="cassette-shell p-3 cursor-pointer hover:-translate-y-2 transition-transform duration-300 group"
                   onClick={() => handleJoinRoom(room.id)}
                 >
-                   <div className="absolute inset-0 bg-primary/20 transform translate-x-2 translate-y-2 transition-transform group-hover:translate-x-3 group-hover:translate-y-3"></div>
-                   <div className="absolute inset-0 bg-zinc-900 border border-white/10 p-6 flex flex-col justify-between transition-transform duration-300 group-hover:-translate-y-1 group-hover:-translate-x-1 group-hover:bg-zinc-800 group-hover:border-primary">
-                      <div>
-                         <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-xl uppercase truncate pr-4 text-white group-hover:text-primary transition-colors">{room.name}</h3>
-                            {room.hostEmail === session?.user?.email && (
-                              <Badge variant="outline" className="border-primary text-primary rounded-none text-[10px] tracking-widest uppercase bg-primary/10">HOST</Badge>
-                            )}
-                         </div>
-                         <p className="font-mono text-xs text-muted-foreground truncate uppercase">// {room.hostEmail}</p>
+                   {/* Cassette Label Area */}
+                   <div className="cassette-label h-32 w-full mb-3 relative p-4 flex flex-col justify-between overflow-hidden">
+                       <div className="absolute top-2 left-2 w-full h-[1px] bg-black/10"></div>
+                       <div className="absolute top-4 left-2 w-full h-[1px] bg-black/10"></div>
+                       
+                       <div className="relative z-10">
+                          <h3 className="font-bold text-xl text-black font-handwriting transform -rotate-1 truncate" style={{ fontFamily: 'sans-serif' }}>{room.name}</h3>
+                          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter truncate">Mixtape by {room.hostEmail.split('@')[0]}</p>
+                       </div>
+
+                       {/* Tape Window */}
+                       <div className="bg-zinc-800 w-3/4 mx-auto h-8 rounded-full flex items-center justify-center gap-4 relative shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-400 flex items-center justify-center">
+                             <div className="w-1 h-1 bg-black rounded-full"></div>
+                          </div>
+                          <div className="w-12 h-2 bg-black/50 rounded-full"></div>
+                          <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-400 flex items-center justify-center">
+                             <div className="w-1 h-1 bg-black rounded-full"></div>
+                          </div>
+                       </div>
+                   </div>
+
+                   {/* Cassette Bottom (Screws & Info) */}
+                   <div className="flex items-center justify-between px-2">
+                      <div className="screw-head"></div>
+                      <div className="flex flex-col items-center">
+                         <span className="text-[8px] text-zinc-500 font-mono uppercase">Type I / Normal</span>
+                         <span className="text-xs font-bold text-zinc-400">{room.streamCount} tracks</span>
                       </div>
-                      
-                      <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
-                         <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                            <span>{room.streamCount} TRACKS</span>
-                         </div>
-                         <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-2 transition-all" />
-                      </div>
+                      <div className="screw-head"></div>
+                   </div>
+                   
+                   {/* Play Button Overlay */}
+                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg backdrop-blur-sm">
+                       <div className="bg-primary text-black px-6 py-2 font-bold font-mono uppercase rounded-full shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                          ▶ Play
+                       </div>
                    </div>
                 </div>
               ))}

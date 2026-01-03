@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, ThumbsUp, Play, SkipForward, Loader2, Plus, ExternalLink } from "lucide-react";
+import { Music, ThumbsUp, Play, SkipForward, Loader2, Plus, ExternalLink, Pause } from "lucide-react";
 import { Appbar } from "@/components/Appbar";
 
 interface Stream {
@@ -44,6 +44,33 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [newStreamUrl, setNewStreamUrl] = useState("");
   const [upvotingIds, setUpvotingIds] = useState<Set<string>>(new Set());
   const [myUpvotedStreamIds, setMyUpvotedStreamIds] = useState<Set<string>>(new Set());
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [volume, setVolume] = useState(100);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  const updateVolume = (newVolume: number) => {
+    setVolume(newVolume);
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(JSON.stringify({
+            "event": "command",
+            "func": "setVolume",
+            "args": [newVolume]
+        }), "*");
+    }
+  };
+
+  const updatePlaybackRate = (rate: number) => {
+    setPlaybackRate(rate);
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(JSON.stringify({
+            "event": "command",
+            "func": "setPlaybackRate",
+            "args": [rate]
+        }), "*");
+    }
+  };
 
   const fetchRoomData = async () => {
     try {
@@ -187,116 +214,163 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const isHost = session?.user?.email === room.host.email;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background selection:bg-primary selection:text-black">
-      <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
-        <div className="container flex h-16 items-center space-x-4">
+    <div className="flex min-h-screen flex-col bg-zinc-950 selection:bg-primary selection:text-black">
+      <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
+      <header className="fixed top-0 z-50 w-full border-b-4 border-zinc-800 bg-zinc-900/90 backdrop-blur-md">
+        <div className="container flex h-20 items-center space-x-4">
           <Appbar />
         </div>
       </header>
  
-      <main className="container flex-1 py-24 relative perspective-1000">
-         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20 pointer-events-none"></div>
-        <div className="mb-8 flex items-end justify-between relative z-10 border-b border-white/10 pb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-                 <div className="w-2 h-2 bg-primary animate-pulse"></div>
-                 <span className="font-mono text-xs text-primary uppercase tracking-widest">Live Frequency</span>
+      <main className="container flex-1 py-32 relative">
+        <div className="mb-8 flex items-end justify-between relative z-10 border-b-2 border-zinc-800 pb-6">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 font-mono text-xs text-primary/70">
+                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                 STEREO • DOLBY NR
             </div>
-            <h1 className="text-4xl md:text-6xl font-heading font-black text-white uppercase tracking-tighter leading-none glow-text">{room.name}</h1>
-            <p className="text-muted-foreground font-mono mt-2">
-              <span className="text-white">HOST:</span> {room.host.email} {isHost && <Badge variant="outline" className="ml-2 border-primary text-primary rounded-none uppercase text-[10px]">YOU</Badge>}
+            <h1 className="text-4xl md:text-6xl font-heading font-black text-zinc-200 uppercase tracking-tighter leading-none">{room.name}</h1>
+            <p className="text-zinc-500 font-mono text-xs tracking-widest mt-1 uppercase">
+              // TAPE_HOST: {room.host.email.split('@')[0]}
             </p>
           </div>
-          <Button onClick={() => router.push("/dashboard")} variant="outline" className="glass hover:bg-red-500/20 hover:border-red-500 hover:text-red-500 rounded-none border-white/10 font-mono text-xs h-10 px-6 uppercase tracking-widest">
-            Term_Session
+          <Button onClick={() => router.push("/dashboard")} className="mechanical-btn bg-zinc-800 text-white hover:bg-zinc-700 h-10 px-6 font-bold text-xs">
+            <span className="mr-2">■</span> EJECT
           </Button>
         </div>
  
-        {/* Currently Playing */}
+        {/* PLAYER DECK */}
         <div className="mb-12 relative z-10">
-           <div className="border border-white/10 bg-black/50 p-1">
-             <div className="bg-zinc-900/80 p-6 md:p-8 backdrop-blur-xl relative overflow-hidden group">
-               {/* Decorative */}
-               <div className="absolute top-0 left-0 w-2 h-2 bg-white"></div>
-               <div className="absolute top-0 right-0 w-2 h-2 bg-white"></div>
-               <div className="absolute bottom-0 left-0 w-2 h-2 bg-white"></div>
-               <div className="absolute bottom-0 right-0 w-2 h-2 bg-white"></div>
+           {/* Deck Chassis */}
+           <div className="bg-zinc-800 rounded-lg p-1 shadow-2xl relative">
+             <div className="absolute top-2 left-2 flex gap-1"><div className="screw-head"></div></div>
+             <div className="absolute top-2 right-2 flex gap-1"><div className="screw-head"></div></div>
+             <div className="absolute bottom-2 left-2 flex gap-1"><div className="screw-head"></div></div>
+             <div className="absolute bottom-2 right-2 flex gap-1"><div className="screw-head"></div></div>
+
+             <div className="bg-zinc-900 p-6 md:p-8 rounded border-4 border-zinc-700/50 relative overflow-hidden">
+               {/* Glass Window Overlay */}
+               <div className="absolute inset-x-12 inset-y-8 bg-white/5 border border-white/10 rounded pointer-events-none z-10"></div>
                
-            <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
-              <div className="p-2 bg-primary text-black font-bold">
-               <Play className="h-4 w-4 fill-current" />
-              </div>
-              <h2 className="text-xl font-bold uppercase tracking-widest">Now_Playing_Sequence</h2>
-            </div>
+               <div className="flex items-center justify-between mb-8 px-4 opacity-50">
+                  <span className="font-heading text-2xl text-zinc-600 font-black italic">BeatNet <span className="text-zinc-500">AUTO-REVERSE</span></span>
+                  <div className="flex gap-4 font-mono text-xs text-zinc-500">
+                     <span>METAL</span>
+                     <span>CrO2</span>
+                     <span className="text-primary font-bold">NORMAL</span>
+                  </div>
+               </div>
             
             {room.currentStream ? (
-              <div className="flex flex-col gap-6">
-                 {/* Player Wrapper with Scanline */}
-                <div className="relative border border-primary/20 shadow-[0_0_30px_rgba(204,255,0,0.1)] group-hover:border-primary/50 transition-colors">
-                    <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] pointer-events-none z-20 opacity-20"></div>
-                    {room.currentStream.type === "Youtube" ? (
-                    <div className="aspect-video w-full bg-black">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${room.currentStream.extractedId}?autoplay=1`}
-                        title="YouTube video player"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full"
-                      />
+              <div className="flex flex-col gap-8 relative z-0">
+                 {/* Tape Window / Visualizer */}
+                <div 
+                    className="relative mx-auto w-full max-w-3xl aspect-[21/9] bg-black rounded border-8 border-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden group transition-transform duration-100 ease-in-out"
+                >
+                    {/* The Media (Hidden Player / Thumbnail) */}
+                    <div className="absolute inset-0 z-0">
+                      {room.currentStream.type === "Youtube" && (
+                         <iframe
+                           src={`https://www.youtube.com/embed/${room.currentStream.extractedId}?autoplay=1&controls=0&modestbranding=1&start=0&enablejsapi=1`}
+                           title="Audio Stream"
+                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                           className="w-full h-full opacity-0 pointer-events-none"
+                         />
+                      )}
+                      {room.currentStream.type === "Spotify" && (
+                         <iframe
+                           src={`https://open.spotify.com/embed/${
+                             room.currentStream.url.includes("playlist")
+                               ? "playlist"
+                               : room.currentStream.url.includes("album")
+                               ? "album"
+                               : "track"
+                           }/${room.currentStream.extractedId}`}
+                           className="w-full h-full opacity-0 pointer-events-none"
+                           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                         />
+                      )}
                     </div>
-                    ) : room.currentStream.type === "Spotify" ? (
-                      <iframe
-                        style={{ borderRadius: "0px" }}
-                        src={`https://open.spotify.com/embed/${
-                          room.currentStream.url.includes("playlist")
-                            ? "playlist"
-                            : room.currentStream.url.includes("album")
-                            ? "album"
-                            : "track"
-                        }/${room.currentStream.extractedId}`}
-                        width="100%"
-                        height="152"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
-                        className="bg-black"
-                      />
-                    ) : (
-                      room.currentStream.smallImg && (
-                        <img
-                          src={room.currentStream.bigImg || room.currentStream.smallImg}
-                          alt={room.currentStream.title}
-                          className="aspect-video w-full object-cover"
-                        />
-                      )
-                    )}
+                    
+                    {/* Static Thumbnail Overlay (Visible) */}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                       <img
+                          src={room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`}
+                          alt="Album Art"
+                          className="w-full h-full object-cover opacity-60 mix-blend-overlay"
+                       />
+                       {/* Green tint/Noise overlay */}
+                       <div className="absolute inset-0 bg-primary/20 mix-blend-multiply"></div>
+                    </div>
+                    
+                    {/* Tape Reels Animation Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center gap-24 pointer-events-none z-20 opacity-80">
+                       <div className="w-24 h-24 border-8 border-zinc-800 bg-black rounded-full animate-[spin_4s_linear_infinite] flex items-center justify-center shadow-2xl">
+                          <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
+                             <div className="w-full h-full flex items-center justify-center">
+                               <div className="w-2 h-2 bg-white rounded-full"></div>
+                               <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>
+                               <div className="absolute w-full h-1 bg-zinc-800 -rotate-45"></div>
+                             </div>
+                          </div>
+                       </div>
+                       <div className="w-24 h-24 border-8 border-zinc-800 bg-black rounded-full animate-[spin_4s_linear_infinite] flex items-center justify-center shadow-2xl">
+                          <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
+                             <div className="w-full h-full flex items-center justify-center">
+                               <div className="w-2 h-2 bg-white rounded-full"></div>
+                               <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>
+                               <div className="absolute w-full h-1 bg-zinc-800 -rotate-45"></div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
                 </div>
                 
-                <div className="flex flex-col md:flex-row items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-3xl md:text-5xl font-heading font-black text-white uppercase leading-none mb-2 truncate">{room.currentStream.title}</h3>
-                    <p className="text-primary font-mono text-sm flex items-center gap-4">
-                       <span>TYPE: {room.currentStream.type.toUpperCase()}</span>
-                       <span>//</span>
-                       <span>VOTES: {room.currentStream.upvotes}</span>
-                    </p>
+                <div className="flex flex-col md:flex-row items-end justify-between gap-6 px-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1 inline-block text-xs font-mono mb-2 animate-pulse">
+                       PLAYING: {room.currentStream.type.toUpperCase()}
+                    </div>
+                    <h3 className="text-2xl md:text-4xl font-heading font-black text-zinc-200 uppercase leading-none truncate">{room.currentStream.title}</h3>
+                    <div className="flex items-center gap-4 mt-2 font-mono text-zinc-500 text-xs">
+                       <span>▲ {room.currentStream.upvotes} VOTES</span>
+                       <span>// {room.currentStream.extractedId}</span>
+                    </div>
                   </div>
                   
                   {isHost && (
-                    <Button onClick={handlePlayNext} size="lg" className="h-14 px-8 bg-white text-black hover:bg-primary hover:scale-105 transition-all rounded-none uppercase font-bold tracking-widest border border-transparent hover:border-black">
-                      <SkipForward className="mr-2 h-5 w-5" />
-                      SKIP_TRACK
-                    </Button>
+                    <div className="flex gap-4">
+                        <Button 
+                            onClick={() => {
+                                const action = isPlaying ? "pauseVideo" : "playVideo";
+                                const iframe = document.querySelector('iframe');
+                                if (iframe && iframe.contentWindow) {
+                                    iframe.contentWindow.postMessage(JSON.stringify({
+                                        "event": "command",
+                                        "func": action,
+                                        "args": []
+                                    }), "*");
+                                    setIsPlaying(!isPlaying);
+                                }
+                            }}
+                            className="mechanical-btn bg-zinc-200 text-black hover:bg-white h-16 w-16 rounded-full flex items-center justify-center border-b-4 border-zinc-400"
+                        >
+                            {isPlaying ? <Pause className="h-6 w-6 ml-1 fill-current" /> : <Play className="h-6 w-6 ml-1 fill-current" />}
+                        </Button>
+                        <Button onClick={handlePlayNext} className="mechanical-btn bg-zinc-800 text-white hover:bg-zinc-700 h-16 w-16 rounded-full flex items-center justify-center border-b-4 border-black">
+                            <SkipForward className="h-6 w-6 ml-1" />
+                        </Button>
+                    </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-white/10 border-dashed bg-black/40">
-                <Music className="mb-6 h-16 w-16 opacity-20 animate-bounce" />
-                <p className="text-xl font-mono uppercase tracking-widest">SIGNAL_LOST</p>
-                <p className="text-xs font-mono opacity-50">Upload new audio stream to resume</p>
+              <div className="flex flex-col items-center justify-center py-20 text-zinc-600 border-4 border-zinc-800 border-dashed bg-black/20 rounded-xl">
+                <Music className="mb-4 h-16 w-16 opacity-20" />
+                <p className="text-xl font-mono uppercase tracking-widest">DECK EMPTY</p>
                 {isHost && room.queue.length > 0 && (
-                  <Button onClick={handlePlayNext} className="mt-8 bg-primary text-black rounded-none uppercase font-bold">
-                    INITIATE_PLAYBACK
+                  <Button onClick={handlePlayNext} className="mt-6 mechanical-btn primary px-8 py-4">
+                    ▶ PLAY TAPE
                   </Button>
                 )}
               </div>
@@ -305,95 +379,147 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
            </div>
         </div>
  
-        <div className="grid md:grid-cols-2 gap-8 relative z-10">
-            {/* Add Stream */}
-            <div className="border border-white/10 bg-black/40 p-1 h-fit">
-              <div className="bg-zinc-900/50 p-6">
-                <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
-                   <Plus className="h-4 w-4 text-primary" />
-                   <h3 className="font-bold uppercase tracking-widest">Inject_Stream</h3>
+        <div className="grid lg:grid-cols-3 gap-12 relative z-10">
+            {/* Add Stream (Side Panel) */}
+            <div className="lg:col-span-1">
+              <div className="bg-zinc-900 border-2 border-zinc-800 p-6 rounded relative">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-zinc-800 rounded"></div>
+                <div className="flex items-center gap-2 mb-6 border-b-2 border-zinc-800 pb-4">
+                   <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                   <h3 className="font-bold uppercase text-zinc-400 tracking-widest text-sm">Input Source</h3>
                 </div>
                 <form onSubmit={handleAddStream} className="flex flex-col gap-4">
-                  <Input
-                    placeholder="PASTE_URL_HERE..."
-                    value={newStreamUrl}
-                    onChange={(e) => setNewStreamUrl(e.target.value)}
-                    disabled={addingStream}
-                     className="bg-black border-white/20 h-14 rounded-none font-mono text-white focus:border-primary focus:ring-0"
-                  />
-                  <Button type="submit" disabled={addingStream || !newStreamUrl.trim()} className="h-14 w-full bg-primary text-black hover:bg-white rounded-none uppercase font-bold tracking-widest hover:translate-x-1 hover:translate-y-1 transition-transform shadow-[4px_4px_0_0_rgba(255,255,255,0.1)] hover:shadow-none">
-                    {addingStream ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        PROCESSING...
-                      </>
-                    ) : (
-                      "UPLOAD_DATA"
-                    )}
+                  <div className="bg-black p-4 rounded border-2 border-zinc-800 shadow-inner">
+                    <Input
+                        placeholder="// URL INPUT..."
+                        value={newStreamUrl}
+                        onChange={(e) => setNewStreamUrl(e.target.value)}
+                        disabled={addingStream}
+                        className="bg-transparent border-0 text-primary font-mono text-sm h-8 placeholder:text-zinc-700 focus-visible:ring-0 p-0"
+                    />
+                  </div>
+                  <Button type="submit" disabled={addingStream || !newStreamUrl.trim()} className="mechanical-btn primary w-full h-12 font-bold text-lg">
+                    {addingStream ? <Loader2 className="animate-spin" /> : "RECORD"}
                   </Button>
                 </form>
+                
+                <div className="mt-8 pt-6 border-t-2 border-zinc-800">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center group">
+                         <div className="relative w-16 h-16 mx-auto mb-2">
+                             {/* Visual Knob */}
+                             <div 
+                                className="w-full h-full rounded-full bg-zinc-800 border-2 border-zinc-600 shadow-[0_4px_0_#000] flex items-center justify-center transition-transform duration-75"
+                                style={{ transform: `rotate(${(volume / 100 * 270) - 135}deg)` }}
+                             >
+                                 <div className="w-1.5 h-4 bg-primary absolute top-1 rounded-full shadow-[0_0_5px_#ccff00]"></div>
+                                 <div className="w-12 h-12 rounded-full border border-zinc-700/50"></div>
+                             </div>
+                             {/* Interaction */}
+                             <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={volume}
+                                onChange={(e) => updateVolume(Number(e.target.value))}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                title="Volume Control"
+                             />
+                         </div>
+                         <span className="font-mono text-[10px] uppercase text-zinc-500 group-hover:text-primary transition-colors">Vol: {volume}%</span>
+                      </div>
+                      <div className="text-center group">
+                         <div className="relative w-16 h-16 mx-auto mb-2">
+                             {/* Visual Knob */}
+                             <div 
+                                className="w-full h-full rounded-full bg-zinc-800 border-2 border-zinc-600 shadow-[0_4px_0_#000] flex items-center justify-center transition-transform duration-75"
+                                style={{ transform: `rotate(${((playbackRate - 0.5) / 1.5 * 270) - 135}deg)` }}
+                             >
+                                 <div className="w-1.5 h-4 bg-zinc-400 absolute top-1 rounded-full group-hover:bg-primary transition-colors"></div>
+                                 <div className="w-12 h-12 rounded-full border border-zinc-700/50"></div>
+                             </div>
+                             {/* Interaction */}
+                             <input
+                                type="range"
+                                min="0.5"
+                                max="2"
+                                step="0.1"
+                                value={playbackRate}
+                                onChange={(e) => updatePlaybackRate(Number(e.target.value))}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                title="Tape Speed (0.5x - 2x)"
+                             />
+                         </div>
+                         <span className="font-mono text-[10px] uppercase text-zinc-500 group-hover:text-primary transition-colors">Speed: {playbackRate}x</span>
+                      </div>
+                   </div>
+                </div>
               </div>
             </div>
      
-            {/* Queue */}
-            <div className="border border-white/10 bg-black/40 p-1">
-               <div className="bg-zinc-900/50 p-6 min-h-[400px]">
-                <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-                   <div className="flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                       <h2 className="font-bold uppercase tracking-widest">Queue_Buffer ({room.queue.length})</h2>
-                   </div>
-                   <p className="text-[10px] font-mono text-muted-foreground uppercase">PRIORITY_SORTED</p>
-                </div>
-                
-                <div className="space-y-2">
-                {room.queue.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border border-white/5 border-dashed bg-black/20">
-                    <p className="font-mono text-xs uppercase">BUFFER_EMPTY</p>
-                  </div>
-                ) : (
-                    room.queue.map((stream, index) => {
-                      const hasUpvoted = myUpvotedStreamIds.has(stream.id);
-                      return (
-                      <div
-                        key={stream.id}
-                        className="flex items-center gap-4 border border-white/5 p-3 hover:bg-white/5 hover:border-primary/50 transition-all group bg-black/40"
-                      >
-                        <div className="flex h-6 w-6 items-center justify-center bg-primary/20 text-primary font-mono font-bold text-xs border border-primary/20">
-                          {String(index + 1).padStart(2, '0')}
+            {/* Queue (Playlist) */}
+            <div className="lg:col-span-2">
+               <div className="bg-zinc-900 border-2 border-zinc-800 p-1 min-h-[500px] relative rounded">
+                 
+                 <div className="absolute -left-1 -top-1 w-4 h-4 rounded-full border-2 border-zinc-700 bg-black z-20"></div>
+                 <div className="absolute -right-1 -top-1 w-4 h-4 rounded-full border-2 border-zinc-700 bg-black z-20"></div>
+                 <div className="absolute -left-1 -bottom-1 w-4 h-4 rounded-full border-2 border-zinc-700 bg-black z-20"></div>
+                 <div className="absolute -right-1 -bottom-1 w-4 h-4 rounded-full border-2 border-zinc-700 bg-black z-20"></div>
+
+                 <div className="bg-black/50 p-8 h-full relative overflow-hidden backdrop-blur-sm">
+                    {/* Dark Texture */}
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-8 border-b-2 border-zinc-800 pb-4">
+                        <h2 className="text-2xl font-mono font-bold text-zinc-200 uppercase tracking-widest flex items-center gap-3">
+                             <div className="w-2 h-2 bg-primary"></div>
+                            Track_List
+                        </h2>
+                        <span className="font-mono text-xs text-zinc-500 uppercase"># {room.name}</span>
                         </div>
-                        {stream.smallImg && (
-                          <img
-                            src={stream.smallImg}
-                            alt={stream.title}
-                            className="h-10 w-10 object-cover grayscale group-hover:grayscale-0 transition-all"
-                          />
+                        
+                        <div className="space-y-2">
+                        {room.queue.length === 0 ? (
+                        <div className="py-12 text-zinc-600 flex flex-col items-center border border-zinc-800 border-dashed rounded bg-zinc-900/50">
+                            <p className="font-mono text-xs uppercase tracking-widest">No tracks queued</p>
+                        </div>
+                        ) : (
+                            room.queue.map((stream, index) => {
+                            const hasUpvoted = myUpvotedStreamIds.has(stream.id);
+                            return (
+                            <div
+                                key={stream.id}
+                                className="flex items-center gap-4 py-3 px-4 group bg-zinc-900/40 border border-zinc-800/50 hover:border-primary/50 hover:bg-zinc-800 transition-all"
+                            >
+                                <span className="font-mono text-primary/50 text-sm w-6">{(index + 1).toString().padStart(2, '0')}</span>
+                                {stream.smallImg && (
+                                   <div className="w-8 h-8 rounded-sm overflow-hidden opacity-60 group-hover:opacity-100 transition-opacity">
+                                      <img src={stream.smallImg} className="w-full h-full object-cover" />
+                                   </div>
+                                )}
+                                
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-zinc-300 font-mono text-sm truncate uppercase group-hover:text-primary transition-colors">{stream.title}</h4>
+                                    <p className="text-[10px] font-mono text-zinc-600 uppercase">
+                                        REQ: {stream.addedBy.split('@')[0]}
+                                    </p>
+                                </div>
+                                <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUpvote(stream.id, hasUpvoted)}
+                                disabled={upvotingIds.has(stream.id)}
+                                className={`gap-2 h-8 rounded-none border ${hasUpvoted ? "bg-primary text-black border-primary" : "border-zinc-700 text-zinc-500 hover:text-primary hover:border-primary bg-transparent"}`}
+                                >
+                                <ThumbsUp className={`h-3 w-3 ${hasUpvoted ? "fill-current" : ""}`} />
+                                <span className="font-mono text-xs font-bold">{stream.upvotes}</span>
+                                </Button>
+                            </div>
+                            )})
                         )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-sm truncate text-white uppercase">{stream.title}</h4>
-                          <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-2 uppercase">
-                            <span className="truncate max-w-[100px]">By {stream.addedBy}</span>
-                             <span className="text-primary">//</span>
-                            <span>{stream.type}</span>
-                          </p>
                         </div>
-                        <Button
-                          variant={hasUpvoted ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleUpvote(stream.id, hasUpvoted)}
-                          disabled={upvotingIds.has(stream.id)}
-                          className={`gap-2 min-w-[60px] h-8 rounded-none border ${hasUpvoted ? "bg-primary text-black border-primary hover:bg-white" : "bg-transparent border-white/10 hover:border-primary hover:text-primary"}`}
-                        >
-                          {upvotingIds.has(stream.id) ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <ThumbsUp className={`h-3 w-3 ${hasUpvoted ? "fill-current" : ""}`} />
-                          )}
-                          <span className="font-mono text-xs">{stream.upvotes}</span>
-                        </Button>
-                      </div>
-                    )})
-                  )}
+                    </div>
                 </div>
                </div>
             </div>
