@@ -1,12 +1,12 @@
 import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 // Play next song in queue
 export async function POST(
   req: NextRequest,
-  { params }: { params: { roomId: string } }
+  props: { params: Promise<{ roomId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,6 +23,7 @@ export async function POST(
       );
     }
 
+    const params = await props.params;
     const roomId = params.roomId;
 
     const room = await prismaClient.room.findUnique({

@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 // Get room details with queue
 export async function GET(
   req: NextRequest,
-  { params }: { params: { roomId: string } }
+  props: { params: Promise<{ roomId: string }> }
 ) {
   try {
+    const params = await props.params;
     const roomId = params.roomId;
 
     const room = await prismaClient.room.findUnique({

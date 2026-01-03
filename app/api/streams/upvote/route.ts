@@ -2,7 +2,7 @@ import { prismaClient } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import {z} from 'zod'
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 const upvoteSchema = z.object({
     streamId: z.string()

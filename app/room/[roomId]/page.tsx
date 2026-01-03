@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Appbar } from "@/components/Appbar";
 interface Stream {
   id: string;
   type: string;
+  extractedId: string;
   url: string;
   title: string;
   smallImg: string;
@@ -33,7 +34,8 @@ interface Room {
   queue: Stream[];
 }
 
-export default function RoomPage({ params }: { params: { roomId: string } }) {
+export default function RoomPage({ params }: { params: Promise<{ roomId: string }> }) {
+  const { roomId } = use(params);
   const { data: session } = useSession();
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
@@ -45,7 +47,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   const fetchRoomData = async () => {
     try {
-      const response = await fetch(`/api/rooms/${params.roomId}`);
+      const response = await fetch(`/api/rooms/${roomId}`);
       const data = await response.json();
       if (response.ok) {
         setRoom(data.room);
@@ -59,7 +61,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   const fetchMyUpvotes = async () => {
     try {
-      const response = await fetch(`/api/streams/my-upvotes?roomId=${params.roomId}`);
+      const response = await fetch(`/api/streams/my-upvotes?roomId=${roomId}`);
       const data = await response.json();
       if (response.ok) {
         setMyUpvotedStreamIds(new Set(data.upvotedStreamIds));
@@ -82,7 +84,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       fetchMyUpvotes();
     }, 5000);
     return () => clearInterval(interval);
-  }, [session, params.roomId]);
+  }, [session, roomId]);
 
   const handleAddStream = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +107,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         body: JSON.stringify({
           creatorId: userData.user.id,
           url: newStreamUrl,
-          roomId: params.roomId,
+          roomId: roomId,
         }),
       });
 
@@ -151,7 +153,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   const handlePlayNext = async () => {
     try {
-      const response = await fetch(`/api/rooms/${params.roomId}/next`, {
+      const response = await fetch(`/api/rooms/${roomId}/next`, {
         method: "POST",
       });
 
@@ -215,35 +217,55 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           </CardHeader>
           <CardContent>
             {room.currentStream ? (
-              <div className="flex items-center gap-4">
-                {room.currentStream.smallImg && (
-                  <img
-                    src={room.currentStream.smallImg}
-                    alt={room.currentStream.title}
-                    className="h-24 w-24 rounded object-cover"
+              <div className="flex flex-col gap-4">
+                {room.currentStream.type === "Youtube" ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${room.currentStream.extractedId}?autoplay=1`}
+                    title="YouTube video player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="aspect-video w-full rounded-lg"
                   />
+                ) : room.currentStream.type === "Spotify" ? (
+                  <iframe
+                    style={{ borderRadius: "12px" }}
+                    src={`https://open.spotify.com/embed/${
+                      room.currentStream.url.includes("playlist")
+                        ? "playlist"
+                        : room.currentStream.url.includes("album")
+                        ? "album"
+                        : "track"
+                    }/${room.currentStream.extractedId}`}
+                    width="100%"
+                    height="152"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                  />
+                ) : (
+                  room.currentStream.smallImg && (
+                    <img
+                      src={room.currentStream.bigImg || room.currentStream.smallImg}
+                      alt={room.currentStream.title}
+                      className="aspect-video w-full rounded-lg object-cover"
+                    />
+                  )
                 )}
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{room.currentStream.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {room.currentStream.type} • {room.currentStream.upvotes} upvotes
-                  </p>
-                  <a
-                    href={room.currentStream.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-sm text-blue-500 hover:underline"
-                  >
-                    Open in {room.currentStream.type}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">{room.currentStream.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {room.currentStream.type} • {room.currentStream.upvotes} upvotes
+                    </p>
+                  </div>
+                  
+                  {isHost && (
+                    <Button onClick={handlePlayNext} size="lg">
+                      <SkipForward className="mr-2 h-4 w-4" />
+                      Next Track
+                    </Button>
+                  )}
                 </div>
-                {isHost && (
-                  <Button onClick={handlePlayNext} size="lg">
-                    <SkipForward className="mr-2 h-4 w-4" />
-                    Next Track
-                  </Button>
-                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">

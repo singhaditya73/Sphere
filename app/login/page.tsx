@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft, Music, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
@@ -15,6 +14,29 @@ import { ModeToggle } from "@/components/mode-toggle"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [bubbles, setBubbles] = useState<Array<{
+    width: number
+    height: number
+    left: string
+    top: string
+    duration: number
+    delay: number
+  }>>([])
+
+  useEffect(() => {
+    setMounted(true)
+    setBubbles(
+      [...Array(10)].map(() => ({
+        width: Math.random() * 300 + 50,
+        height: Math.random() * 300 + 50,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        duration: Math.random() * 10 + 10,
+        delay: Math.random() * 5,
+      }))
+    )
+  }, [])
 
   const handleGoogleLogin = () => {
     setIsLoading(true)
@@ -25,15 +47,15 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-background/80 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 -z-10">
-        {[...Array(10)].map((_, i) => (
+        {mounted && bubbles.map((bubble, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full bg-primary/5 dark:bg-primary/10"
             style={{
-              width: Math.random() * 300 + 50,
-              height: Math.random() * 300 + 50,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              width: bubble.width,
+              height: bubble.height,
+              left: bubble.left,
+              top: bubble.top,
             }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{
@@ -41,9 +63,9 @@ export default function LoginPage() {
               opacity: [0.1, 0.2, 0.1],
             }}
             transition={{
-              duration: Math.random() * 10 + 10,
+              duration: bubble.duration,
               repeat: Number.POSITIVE_INFINITY,
-              delay: Math.random() * 5,
+              delay: bubble.delay,
             }}
           />
         ))}

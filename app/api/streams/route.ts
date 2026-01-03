@@ -1,29 +1,46 @@
 import { prismaClient } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import youtubesearchapi from "youtube-search-api";
+import * as youtubesearchapi from "youtube-search-api";
 
 const rateLimitStore = new Map<string, { count: number; lastRequest: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; 
 const MAX_REQUESTS = 5; 
 
-const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{11}(&.*)?$/;
-const SPOTIFY_REGEX = /^(https?:\/\/)?(open\.)?spotify\.com\/(track|playlist|album)\/[\w-]+(\?.*)?$/;
+const YT_REGEX = /^(https?:\/\/)?(www\.|music\.|m\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})([&?].*)?$/;
+const SPOTIFY_REGEX = /^(https?:\/\/)?(open\.)?spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)(\?.*)?$/;
 
 const CreateStreamSchema = z.object({
   creatorId: z.string(),
-  url: z.string().refine(
-    (url) => YT_REGEX.test(url) || SPOTIFY_REGEX.test(url),
-    { message: "URL must be a valid YouTube or Spotify link" }
-  ),
+  url: z.string(), // Removed strict refinement here to debug, or move it to runtime check with logging
   roomId: z.string(),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
     
+    const user = await prismaClient.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+       return NextResponse.json(
+        { message: "User not found" },
+        { status: 404 }
+      );
+    }
+
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     const now = Date.now();
 
@@ -42,12 +59,20 @@ export async function POST(req: NextRequest) {
     }
     rateLimitStore.set(ip, userData);
 
-    const data = CreateStreamSchema.parse(await req.json());
+    const body = await req.json();
+    console.log("Received Stream Request:", body);
+    const data = CreateStreamSchema.parse(body);
+    data.url = data.url.trim();
+    
+    // Force creatorId to be the authenticated user
+    data.creatorId = user.id;
+
     const isYt = YT_REGEX.test(data.url);
     const isSpotify = SPOTIFY_REGEX.test(data.url);
 
     if (!isYt && !isSpotify) {
-      return NextResponse.json({ message: "Invalid URL format" }, { status: 400 });
+      console.log("URL validation failed for:", data.url);
+      return NextResponse.json({ message: "URL must be a valid YouTube or Spotify link" }, { status: 400 });
     }
 
     let title = "unknown";
@@ -59,7 +84,9 @@ export async function POST(req: NextRequest) {
     // YouTube
     if (isYt) {
       streamType = "Youtube";
-      extractedId = data.url.split("?v=")[1] || "";
+      const match = data.url.match(YT_REGEX);
+      extractedId = match && match[4] ? match[4] : "";
+      
       const res = await youtubesearchapi.GetVideoDetails(extractedId);
       title = res.title ?? "cant find";
 
@@ -77,8 +104,8 @@ export async function POST(req: NextRequest) {
 
     else if (isSpotify) {
       streamType = "Spotify";
-        const urlParts = data.url.split("/");
-      extractedId = urlParts[urlParts.length - 1].split("?")[0] || "";
+      const match = data.url.match(SPOTIFY_REGEX);
+      extractedId = match && match[4] ? match[4] : "";
 
       title = "Spotify Track";
       smallImg = "";
