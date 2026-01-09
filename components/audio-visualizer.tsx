@@ -5,9 +5,10 @@ import { useEffect, useRef } from "react";
 interface AudioVisualizerProps {
   isPlaying: boolean;
   color?: string; // Hex color
+  className?: string; // Allow custom positioning
 }
 
-export function AudioVisualizer({ isPlaying, color = "#a3e635" }: AudioVisualizerProps) {
+export function AudioVisualizer({ isPlaying, color = "#a3e635", className }: AudioVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -22,41 +23,43 @@ export function AudioVisualizer({ isPlaying, color = "#a3e635" }: AudioVisualize
     
     // Wave parameters
     const lines = 8;
-    const speed = 0.02; // Global speed factor
+    const speed = 0.02; 
     const baseAmplitude = 50;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Use offsetWidth/Height of the canvas itself (or parent) to match container
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
     };
 
-    window.addEventListener("resize", resize);
+    // Initial resize
     resize();
+    
+    // Watch for resize events
+    window.addEventListener("resize", resize);
 
     const draw = () => {
-      ctx.fillStyle = "rgba(10, 10, 15, 0.2)"; // Fade out trail
-      ctx.fillRect(0, 0, canvas.width, canvas.height); // Clear with trail
+      // Clear with trail
+      ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Dark trail for better contrast in small window
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // If playing, advance time fast. If paused, crawl slowly.
+      // Time step
       time += isPlaying ? speed : speed * 0.1;
 
       for (let i = 0; i < lines; i++) {
         ctx.beginPath();
-        const yBase = canvas.height / 2 + (i - lines / 2) * 40;
+        const yBase = canvas.height / 2 + (i - lines / 2) * 20; // Tighter spacing for smaller view
         
         ctx.lineWidth = 2;
-        ctx.strokeStyle = color; // Use prop color
+        ctx.strokeStyle = color;
         
-        // Vary opacity based on index
         const opacity = Math.max(0.1, 1 - Math.abs(i - lines / 2) / (lines / 2));
         ctx.globalAlpha = opacity;
 
         for (let x = 0; x < canvas.width; x += 5) {
-          // Complex wave function
-          // Mix multiple sine waves with time and index offsets
           const noise = 
-            Math.sin(x * 0.003 + time * (i + 1)) * baseAmplitude * (isPlaying ? 1 : 0.2) +
-            Math.sin(x * 0.01 - time * 2) * (baseAmplitude / 2) * (isPlaying ? 1 : 0.1);
+            Math.sin(x * 0.01 + time * (i + 1)) * baseAmplitude * (isPlaying ? 0.8 : 0.2) +
+            Math.sin(x * 0.02 - time * 2) * (baseAmplitude / 2) * (isPlaying ? 0.8 : 0.1);
           
           const y = yBase + noise;
           
@@ -80,7 +83,7 @@ export function AudioVisualizer({ isPlaying, color = "#a3e635" }: AudioVisualize
   return (
     <canvas 
       ref={canvasRef} 
-      className="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-40 mix-blend-screen"
+      className={`w-full h-full pointer-events-none mix-blend-screen ${className || ''}`}
     />
   );
 }

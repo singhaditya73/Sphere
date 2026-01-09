@@ -290,7 +290,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Appbar />
-      <AudioVisualizer isPlaying={isPlaying} />
  
       <main className="container flex-1 py-32 px-6 relative max-w-7xl mx-auto">
         {/* Room Header */}
@@ -381,6 +380,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                          />
                       )}
+                    </div>
+
+                    {/* Visualizer (Behind Thumbnail) */}
+                    <div className="absolute inset-0 z-5">
+                       <AudioVisualizer isPlaying={isPlaying} className="opacity-60" />
                     </div>
                     
                     {/* Static Thumbnail Overlay (Visible) */}
