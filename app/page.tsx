@@ -175,34 +175,48 @@ export default function Home() {
               </div>
             )}
 
-            {/* Manual Room Entry */}
+            {/* Manual Room Entry - Redesigned */}
             <div className="mt-12 pt-8 border-t-2 border-dashed border-border">
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                <div className="flex-1 max-w-md w-full">
-                  <label className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-2 block text-center sm:text-left">DIAL FREQUENCY (ROOM ID)</label>
-                  <div className="flex gap-2">
+              <div className="bg-card border-2 border-border p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg relative overflow-hidden group">
+                 {/* Decorative background for the tuner */}
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-10 mix-blend-multiply pointer-events-none"></div>
+                 
+                 <div className="relative z-10 flex items-center gap-4 w-full md:w-auto">
+                    <div className="w-16 h-16 bg-background border-2 border-border flex items-center justify-center shrink-0 shadow-inner">
+                        <Radio className="w-8 h-8 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                        <h3 className="font-heading text-2xl font-black uppercase text-foreground">Frequency Tuner</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                           <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                           <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">SIGNAL_SEARCH_MOD</p>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div className="relative z-10 w-full md:max-w-md">
+                   <div className="flex gap-0 shadow-md">
                     <input
                       type="text"
                       value={roomIdInput}
                       onChange={(e) => setRoomIdInput(e.target.value)}
-                      placeholder="Enter room ID or paste link..."
-                      className="flex-1 h-12 px-4 bg-background border-2 border-border text-foreground font-mono text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+                      placeholder="ENTER FREQUENCY ID..."
+                      className="flex-1 h-14 px-6 bg-background border-2 border-border border-r-0 text-foreground font-mono text-base placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none transition-colors uppercase"
                     />
                     <button
                       onClick={() => {
                         if (!roomIdInput.trim()) return;
-                        // Extract room ID from URL if pasted
                         const id = roomIdInput.includes('/room/') 
                           ? roomIdInput.split('/room/')[1].split('?')[0] 
                           : roomIdInput.trim();
                         router.push(`/room/${id}`);
                       }}
-                      className="h-12 px-6 bg-primary text-primary-foreground font-mono font-bold uppercase hover:bg-primary/80 transition-colors"
+                      className="h-14 px-8 bg-primary text-primary-foreground font-mono font-bold uppercase hover:bg-primary/90 transition-all border-2 border-primary hover:border-primary/90 active:translate-y-0.5"
                     >
                       TUNE IN
                     </button>
-                  </div>
-                </div>
+                   </div>
+                 </div>
               </div>
             </div>
           </div>
@@ -273,23 +287,26 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="how-it-works" className="container space-y-6 py-8 md:py-12 lg:py-24 border-t border-white/10">
-          <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
-             <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">Operating <span className="text-primary">Manual</span></h2>
-            <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7 font-mono">
-              Initialize sequence in 3 steps.
-            </p>
+        <section id="how-it-works" className="py-16 md:py-24 border-t border-border">
+          <div className="container mx-auto max-w-6xl space-y-8">
+            <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
+               <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">Operating <span className="text-primary">Manual</span></h2>
+              <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7 font-mono">
+                Initialize sequence in 3 steps.
+              </p>
+            </div>
+            <HowItWorks />
           </div>
-          <HowItWorks />
         </section>
         <section
           id="testimonials"
-          className="container space-y-6 bg-primary/5 py-8 md:py-12 lg:py-24 border-y border-white/10"
+          className="bg-primary/5 py-16 md:py-24 border-y border-border"
         >
-          <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
-            <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">User <span className="text-primary">Logs</span></h2>
-          </div>
-          <div className="mx-auto grid justify-center gap-6 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-3 perspective-1000">
+          <div className="container mx-auto max-w-6xl space-y-8">
+            <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
+              <h2 className="font-heading text-4xl leading-[1.1] sm:text-5xl md:text-7xl uppercase tracking-tighter">User <span className="text-primary">Logs</span></h2>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
             <div className="transform rotate-y-12 hover:rotate-0 transition-all duration-300">
             <Testimonial
               quote="System optimal. Audio latency negligible. Use case confirmed."
@@ -311,13 +328,14 @@ export default function Home() {
               role="Admin [Founder]"
             />
              </div>
+            </div>
           </div>
         </section>
 
       </main>
       <footer className="border-t border-border py-6 md:py-0 bg-card">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+          <div className="flex flex-col items-center gap-4 md:flex-row md:gap-2">
             <Music className="h-6 w-6 text-primary" />
             <p className="text-center text-sm leading-loose md:text-left font-mono text-muted-foreground">
               &copy; {new Date().getFullYear()} BEATNET_SYSTEMS. ALL RIGHTS RESERVED.
