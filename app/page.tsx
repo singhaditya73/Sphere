@@ -1,4 +1,8 @@
+"use client"
+
 import Link from "next/link"
+import { motion } from "framer-motion"
+import { useEffect, useState } from "react"
 import { ArrowRight, Music, Users, Vote, Headphones, Radio, Mic2,  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Appbar } from "@components/Appbar"
@@ -9,7 +13,27 @@ import { Testimonial } from "@/components/testimonial"
 import { PlaylistPreview } from "@/components/playlist-preview"
 import { MusicVisualizer } from "@/components/music-visualizer"
 
+interface TopRoom {
+  id: string;
+  name: string;
+  hostEmail: string;
+  streamCount: number;
+}
+
 export default function Home() {
+  const [topRooms, setTopRooms] = useState<TopRoom[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/rooms/top')
+      .then(res => res.json())
+      .then(data => {
+        setTopRooms(data.rooms || []);
+        setLoadingRooms(false);
+      })
+      .catch(() => setLoadingRooms(false));
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-black overflow-x-hidden">
       <Appbar />
@@ -21,7 +45,12 @@ export default function Home() {
            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
            
            {/* The "Wrapper" Design */}
-           <div className="container relative z-10 max-w-6xl">
+           <motion.div 
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "circOut" }}
+              className="container relative z-10 max-w-6xl"
+           >
               <div className="border-[12px] border-border bg-card shadow-2xl relative overflow-hidden group">
                   {/* Plastic Wrap Reflection */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent pointer-events-none z-20"></div>
@@ -92,7 +121,56 @@ export default function Home() {
                       <div className="text-zinc-700 font-black text-2xl tracking-tighter">JAPAN</div>
                   </div>
               </div>
-           </div>
+           </motion.div>
+        </section>
+
+        {/* TOP FREQUENCIES - ACTIVE ROOMS */}
+        <section className="bg-secondary/50 py-16 border-y-4 border-border">
+          <div className="container max-w-6xl">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="font-heading text-4xl font-black uppercase text-foreground tracking-tight">Top Frequencies</h2>
+                <p className="font-mono text-sm text-muted-foreground mt-1">// LIVE_BROADCAST • TUNE IN NOW</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="font-mono text-xs text-muted-foreground uppercase">On Air</span>
+              </div>
+            </div>
+
+            {loadingRooms ? (
+              <div className="text-center py-12 font-mono text-muted-foreground">SCANNING FREQUENCIES...</div>
+            ) : topRooms.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
+                <p className="font-mono text-muted-foreground">NO STATIONS BROADCASTING</p>
+                <Link href="/dashboard" className="mt-4 inline-block text-primary font-mono text-sm hover:underline">START YOUR OWN →</Link>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                {topRooms.slice(0, 3).map((room, index) => (
+                  <Link 
+                    key={room.id} 
+                    href={`/room/${room.id}`}
+                    className="group bg-card border-2 border-border hover:border-primary p-6 transition-all hover:shadow-lg hover:-translate-y-1"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-primary/20 border border-primary/50 rounded-full flex items-center justify-center font-heading text-2xl font-black text-primary">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-heading font-bold text-lg text-foreground uppercase truncate group-hover:text-primary transition-colors">{room.name}</h3>
+                        <p className="font-mono text-xs text-muted-foreground truncate">HOST: {room.hostEmail.split('@')[0]}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border pt-4">
+                      <span className="font-mono text-xs text-muted-foreground">{room.streamCount} TRACKS</span>
+                      <span className="font-mono text-xs text-primary group-hover:translate-x-1 transition-transform">TUNE IN →</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* FEATURE SECTION: THE MANUAL */}
@@ -100,7 +178,13 @@ export default function Home() {
              {/* Texture specifically for manual paper feel */}
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-30 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
             <div className="container max-w-6xl">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-4 border-border p-8 bg-card shadow-xl relative">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-12 border-4 border-border p-8 bg-card shadow-xl relative"
+                >
                     {/* Fold Crease */}
                     <div className="absolute inset-y-0 left-1/2 w-px bg-border hidden md:block"></div>
                     
@@ -150,7 +234,7 @@ export default function Home() {
                     <div className="md:col-span-12 mt-8 pt-8 border-t-2 border-dashed border-zinc-300 text-center font-mono text-xs text-zinc-400">
                         BEATNET CORP. © 2025 // PRINTED IN CYBERSPACE
                     </div>
-                </div>
+                </motion.div>
             </div>
         </section>
 

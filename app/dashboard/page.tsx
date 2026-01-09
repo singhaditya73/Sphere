@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Appbar } from "@/components/Appbar";
 import { Music, Loader2, Plus, ArrowRight, Disc } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 interface Room {
   id: string;
@@ -111,6 +112,21 @@ export default function DashboardPage() {
     router.push(`/room/${roomId}`);
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  }
+
   if (status === "loading" || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -147,7 +163,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Create New Room Button/Card */}
-        <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 mb-24">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 mb-24"
+        >
             <Card className="p-8 border-4 border-primary bg-secondary/30 relative overflow-hidden group hover:border-primary/80 transition-theme shadow-[8px_8px_0_0_#93a079] hover:shadow-[4px_4px_0_0_#93a079] hover:translate-x-1 hover:translate-y-1">
                 {/* Master Tape Texture */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
@@ -162,7 +183,7 @@ export default function DashboardPage() {
                     </div>
                 
                 {!showCreateForm ? (
-                  <Button onClick={() => setShowCreateForm(true)} className="mechanical-btn primary h-14 px-8 text-lg">
+                  <Button onClick={() => setShowCreateForm(true)} className="mechanical-btn primary h-14 px-8 text-lg text-black">
                     <Plus className="mr-2 h-5 w-5" />
                     Insert Tape
                   </Button>
@@ -195,7 +216,7 @@ export default function DashboardPage() {
                 )}
                 </div>
             </Card>
-        </div>
+        </motion.div>
 
         {/* Active Rooms */}
         <div className="relative z-10">
@@ -209,10 +230,16 @@ export default function DashboardPage() {
               <p className="text-muted-foreground font-mono uppercase">Shelf Empty</p>
             </div>
           ) : (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <motion.div 
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {rooms.map((room) => (
-                <div
+                <motion.div
                   key={room.id}
+                  variants={item}
                   className="cassette-shell p-3 cursor-pointer hover:-translate-y-2 transition-transform duration-300 group"
                   onClick={() => handleJoinRoom(room.id)}
                 >
@@ -254,9 +281,9 @@ export default function DashboardPage() {
                           ▶ Play
                        </div>
                    </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </main>

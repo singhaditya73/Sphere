@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, ThumbsUp, Play, SkipForward, Loader2, Plus, ExternalLink, Pause } from "lucide-react";
+import { Loader2, Play, ThumbsUp, ThumbsDown, Trash2, ArrowRight, Pause, SkipForward } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 
 interface Stream {
@@ -39,6 +40,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const { data: session } = useSession();
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addingStream, setAddingStream] = useState(false);
   const [newStreamUrl, setNewStreamUrl] = useState("");
@@ -168,7 +170,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   useEffect(() => {
     if (!session) {
-      router.push("/login");
+      const currentPath = window.location.pathname;
+      router.push(`/login?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
     fetchRoomData();
@@ -299,9 +302,21 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                  STEREO • DOLBY NR
             </div>
             <h1 className="text-4xl md:text-6xl font-heading font-black text-foreground uppercase tracking-tighter leading-none">{room.name}</h1>
-            <p className="text-muted-foreground font-mono text-xs tracking-widest mt-1 uppercase">
-              // TAPE_HOST: {room.host.email.split('@')[0]}
-            </p>
+            <div className="flex items-center gap-4 mt-2">
+                <p className="text-muted-foreground font-mono text-xs tracking-widest uppercase">
+                // TAPE_HOST: {room.host.email.split('@')[0]}
+                </p>
+                <button 
+                  onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-widest transition-colors flex items-center gap-2"
+                >
+                  {copied ? "LINK COPIED!" : "SHARE FREQUENCY"}
+                </button>
+            </div>
           </div>
           <Button onClick={() => router.push("/dashboard")} className="mechanical-btn bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-6 font-bold text-xs">
             <span className="mr-2">■</span> EJECT
@@ -336,7 +351,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <div className="flex flex-col gap-8 relative z-0">
                  {/* Tape Window / Visualizer */}
                   {/* Tape Window / Visualizer */}
-                <div 
+                <motion.div 
+                    initial={{ scaleY: 0, opacity: 0 }}
+                    animate={{ scaleY: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, ease: "circOut" }}
                     className="relative mx-auto w-full max-w-3xl aspect-video bg-black rounded border-8 border-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden group transition-transform duration-100 ease-in-out"
                 >
                     {/* The Media (Hidden Player / Thumbnail) */}
@@ -389,7 +407,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                           </div>
                        </div>
                     </div>
-                </div>
+                </motion.div>
                 
                 {/* Tape Counter / Progress Bar */}
                  <div className="w-full max-w-3xl mx-auto px-1">
@@ -465,7 +483,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border-4 border-border border-dashed bg-card/20 rounded-xl">
-                <Music className="mb-4 h-16 w-16 opacity-20" />
+                <Loader2 className="mb-4 h-16 w-16 opacity-20" />
                 <p className="text-xl font-mono uppercase tracking-widest">DECK EMPTY</p>
                 {isHost && room.queue.length > 0 && (
                   <Button onClick={handlePlayNext} className="mt-6 mechanical-btn primary px-8 py-4">
@@ -573,6 +591,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                         </div>
                         
                         <div className="space-y-2">
+                        <AnimatePresence mode="popLayout">
                         {room.queue.length === 0 ? (
                         <div className="py-12 text-muted-foreground flex flex-col items-center border border-border border-dashed rounded bg-background/50">
                             <p className="font-mono text-xs uppercase tracking-widest">No tracks queued</p>
@@ -581,7 +600,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                             room.queue.map((stream, index) => {
                             const hasUpvoted = myUpvotedStreamIds.has(stream.id);
                             return (
-                            <div
+                            <motion.div
+                                layout
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 key={stream.id}
                                 className="flex items-center gap-4 py-3 px-4 group bg-accent/20 border border-border hover:border-primary/50 hover:bg-accent transition-all"
                             >
@@ -608,9 +632,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                                 <ThumbsUp className={`h-3 w-3 ${hasUpvoted ? "fill-current" : ""}`} />
                                 <span className="font-mono text-xs font-bold">{stream.upvotes}</span>
                                 </Button>
-                            </div>
-                            )})
-                        )}
+
+                            </motion.div>
+                            )}) )}
+                        </AnimatePresence>
+
                         </div>
                     </div>
                 </div>

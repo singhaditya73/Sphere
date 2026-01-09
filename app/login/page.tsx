@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Music, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
@@ -14,10 +15,12 @@ import { ModeToggle } from "@/components/mode-toggle"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
 
   const handleGoogleLogin = () => {
     setIsLoading(true)
-    signIn("google", { callbackUrl: "/dashboard" })
+    signIn("google", { callbackUrl })
   }
 
   return (
