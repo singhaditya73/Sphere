@@ -69,24 +69,24 @@ export function Appbar({ className = "" }: AppbarProps) {
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full border-2 border-primary/20 hover:border-primary transition-colors focus:ring-0">
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={session.data.user.image || ""} alt={session.data.user.name || "User"} />
-                    <AvatarFallback className="bg-zinc-800 text-primary font-mono font-bold">
+                    <AvatarFallback className="bg-muted text-primary font-mono font-bold">
                       {session.data.user.name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-zinc-900 border-2 border-zinc-800 text-zinc-300 shadow-xl" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-card border-2 border-border text-foreground shadow-xl" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal border-b border-zinc-800 pb-2">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none text-white font-heading tracking-wide uppercase">{session.data.user.name}</p>
-                    <p className="text-xs leading-none text-zinc-500 font-mono truncate">
+                    <p className="text-xs leading-none text-muted-foreground font-mono truncate">
                       {session.data.user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem 
-                  className="cursor-pointer text-zinc-400 hover:text-white hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white font-mono uppercase text-xs tracking-wider"
+                  className="cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted focus:text-foreground font-mono uppercase text-xs tracking-wider"
                   onClick={() => signOut()}
                 >
                   <ArrowRight className="mr-2 h-3 w-3" />
@@ -96,7 +96,7 @@ export function Appbar({ className = "" }: AppbarProps) {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <Button variant="outline" className="group border-2 border-zinc-700 bg-transparent text-zinc-300 hover:text-white hover:border-white hover:bg-zinc-800">
+              <Button variant="outline" className="group border-2 border-border bg-transparent text-foreground hover:text-primary hover:border-primary hover:bg-muted">
                 Sign In
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1 " />
               </Button>

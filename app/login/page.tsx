@@ -31,7 +31,7 @@ export default function LoginPage() {
       
       {/* Back Link */}
       <header className="absolute top-0 left-0 w-full p-8 z-20">
-        <Link href="/" className="flex items-center space-x-2 text-zinc-500 hover:text-primary transition-colors group font-mono text-sm uppercase tracking-widest">
+        <Link href="/" className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors group font-mono text-sm uppercase tracking-widest">
           <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           <span>Eject / Return</span>
         </Link>
@@ -99,7 +99,7 @@ export default function LoginPage() {
         
         {/* Footer */}
         <div className="text-center mt-8">
-             <Link href="/signup" className="text-zinc-600 hover:text-zinc-400 text-xs font-mono underline underline-offset-4 transition-colors">
+             <Link href="/signup" className="text-muted-foreground hover:text-foreground text-xs font-mono underline underline-offset-4 transition-colors">
                 Apply for KeyCard [Sign Up]
              </Link>
         </div>

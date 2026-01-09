@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { isRoomCode } from "@/lib/room-code";
 import { NextRequest, NextResponse } from "next/server";
 
 // Get room details with queue
@@ -10,11 +11,13 @@ export async function GET(
     const params = await props.params;
     const roomId = params.roomId;
 
-    const room = await prismaClient.room.findUnique({
-      where: {
-        id: roomId,
-        isActive: true,
-      },
+    // Support lookup by code (BEAT-XXXX) or by UUID
+    const whereClause = isRoomCode(roomId) 
+      ? { code: roomId.toUpperCase(), isActive: true }
+      : { id: roomId, isActive: true };
+
+    const room = await prismaClient.room.findFirst({
+      where: whereClause,
       include: {
         host: {
           select: {
@@ -80,6 +83,7 @@ export async function GET(
     return NextResponse.json({
       room: {
         id: room.id,
+        code: room.code,
         name: room.name,
         host: room.host,
         currentStream,

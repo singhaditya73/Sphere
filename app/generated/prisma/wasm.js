@@ -125,6 +125,7 @@ exports.Prisma.UserScalarFieldEnum = {
 
 exports.Prisma.RoomScalarFieldEnum = {
   id: 'id',
+  code: 'code',
   name: 'name',
   hostId: 'hostId',
   currentStreamId: 'currentStreamId',

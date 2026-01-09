@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowRight, Music, Users, Vote, Headphones, Radio, Mic2,  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Appbar } from "@components/Appbar"
@@ -15,14 +16,17 @@ import { MusicVisualizer } from "@/components/music-visualizer"
 
 interface TopRoom {
   id: string;
+  code: string;
   name: string;
   hostEmail: string;
   streamCount: number;
 }
 
 export default function Home() {
+  const router = useRouter();
   const [topRooms, setTopRooms] = useState<TopRoom[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
+  const [roomIdInput, setRoomIdInput] = useState('');
 
   useEffect(() => {
     fetch('/api/rooms/top')
@@ -150,7 +154,7 @@ export default function Home() {
                 {topRooms.slice(0, 3).map((room, index) => (
                   <Link 
                     key={room.id} 
-                    href={`/room/${room.id}`}
+                    href={`/room/${room.code}`}
                     className="group bg-card border-2 border-border hover:border-primary p-6 transition-all hover:shadow-lg hover:-translate-y-1"
                   >
                     <div className="flex items-center gap-3 mb-4">
@@ -159,7 +163,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-heading font-bold text-lg text-foreground uppercase truncate group-hover:text-primary transition-colors">{room.name}</h3>
-                        <p className="font-mono text-xs text-muted-foreground truncate">HOST: {room.hostEmail.split('@')[0]}</p>
+                        <p className="font-mono text-xs text-primary">{room.code}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-t border-border pt-4">
@@ -170,6 +174,37 @@ export default function Home() {
                 ))}
               </div>
             )}
+
+            {/* Manual Room Entry */}
+            <div className="mt-12 pt-8 border-t-2 border-dashed border-border">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                <div className="flex-1 max-w-md w-full">
+                  <label className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-2 block text-center sm:text-left">DIAL FREQUENCY (ROOM ID)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={roomIdInput}
+                      onChange={(e) => setRoomIdInput(e.target.value)}
+                      placeholder="Enter room ID or paste link..."
+                      className="flex-1 h-12 px-4 bg-background border-2 border-border text-foreground font-mono text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!roomIdInput.trim()) return;
+                        // Extract room ID from URL if pasted
+                        const id = roomIdInput.includes('/room/') 
+                          ? roomIdInput.split('/room/')[1].split('?')[0] 
+                          : roomIdInput.trim();
+                        router.push(`/room/${id}`);
+                      }}
+                      className="h-12 px-6 bg-primary text-primary-foreground font-mono font-bold uppercase hover:bg-primary/80 transition-colors"
+                    >
+                      TUNE IN
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -280,7 +315,7 @@ export default function Home() {
         </section>
 
       </main>
-      <footer className="border-t border-white/10 py-6 md:py-0 bg-black">
+      <footer className="border-t border-border py-6 md:py-0 bg-card">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
             <Music className="h-6 w-6 text-primary" />

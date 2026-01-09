@@ -250,16 +250,16 @@ export default function DashboardPage() {
                        
                        <div className="relative z-10">
                           <h3 className="font-bold text-xl text-black font-handwriting transform -rotate-1 truncate" style={{ fontFamily: 'sans-serif' }}>{room.name}</h3>
-                          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter truncate">Mixtape by {room.hostEmail.split('@')[0]}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter truncate">Mixtape by {room.hostEmail.split('@')[0]}</p>
                        </div>
 
                        {/* Tape Window */}
-                       <div className="bg-zinc-800 w-3/4 mx-auto h-8 rounded-full flex items-center justify-center gap-4 relative shadow-inner">
-                          <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-400 flex items-center justify-center">
+                       <div className="bg-muted w-3/4 mx-auto h-8 rounded-full flex items-center justify-center gap-4 relative shadow-inner">
+                          <div className="w-6 h-6 rounded-full bg-card border-2 border-border flex items-center justify-center">
                              <div className="w-1 h-1 bg-black rounded-full"></div>
                           </div>
                           <div className="w-12 h-2 bg-black/50 rounded-full"></div>
-                          <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-400 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-card border-2 border-border flex items-center justify-center">
                              <div className="w-1 h-1 bg-black rounded-full"></div>
                           </div>
                        </div>
@@ -269,8 +269,8 @@ export default function DashboardPage() {
                    <div className="flex items-center justify-between px-2">
                       <div className="screw-head"></div>
                       <div className="flex flex-col items-center">
-                         <span className="text-[8px] text-zinc-400 font-mono uppercase">Type I / Normal</span>
-                         <span className="text-xs font-bold text-zinc-300">{room.streamCount} tracks</span>
+                         <span className="text-[8px] text-muted-foreground font-mono uppercase">Type I / Normal</span>
+                         <span className="text-xs font-bold text-foreground">{room.streamCount} tracks</span>
                       </div>
                       <div className="screw-head"></div>
                    </div>

@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { generateRoomCode } from "@/lib/room-code";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -48,9 +49,20 @@ export async function POST(req: NextRequest) {
 
     const data = CreateRoomSchema.parse(body);
 
+    // Generate unique room code with retry
+    let code = generateRoomCode();
+    let attempts = 0;
+    while (attempts < 10) {
+      const existing = await prismaClient.room.findUnique({ where: { code } });
+      if (!existing) break;
+      code = generateRoomCode();
+      attempts++;
+    }
+
     const room = await prismaClient.room.create({
       data: {
         name: data.name,
+        code: code,
         hostId: user.id,
       },
     });
@@ -62,6 +74,7 @@ export async function POST(req: NextRequest) {
       message: "Room created successfully",
       room: {
         id: room.id,
+        code: room.code,
         name: room.name,
         hostId: room.hostId,
       },

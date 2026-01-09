@@ -2392,6 +2392,7 @@ export namespace Prisma {
 
   export type RoomMinAggregateOutputType = {
     id: string | null
+    code: string | null
     name: string | null
     hostId: string | null
     currentStreamId: string | null
@@ -2401,6 +2402,7 @@ export namespace Prisma {
 
   export type RoomMaxAggregateOutputType = {
     id: string | null
+    code: string | null
     name: string | null
     hostId: string | null
     currentStreamId: string | null
@@ -2410,6 +2412,7 @@ export namespace Prisma {
 
   export type RoomCountAggregateOutputType = {
     id: number
+    code: number
     name: number
     hostId: number
     currentStreamId: number
@@ -2421,6 +2424,7 @@ export namespace Prisma {
 
   export type RoomMinAggregateInputType = {
     id?: true
+    code?: true
     name?: true
     hostId?: true
     currentStreamId?: true
@@ -2430,6 +2434,7 @@ export namespace Prisma {
 
   export type RoomMaxAggregateInputType = {
     id?: true
+    code?: true
     name?: true
     hostId?: true
     currentStreamId?: true
@@ -2439,6 +2444,7 @@ export namespace Prisma {
 
   export type RoomCountAggregateInputType = {
     id?: true
+    code?: true
     name?: true
     hostId?: true
     currentStreamId?: true
@@ -2521,6 +2527,7 @@ export namespace Prisma {
 
   export type RoomGroupByOutputType = {
     id: string
+    code: string
     name: string
     hostId: string
     currentStreamId: string | null
@@ -2547,6 +2554,7 @@ export namespace Prisma {
 
   export type RoomSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    code?: boolean
     name?: boolean
     hostId?: boolean
     currentStreamId?: boolean
@@ -2559,6 +2567,7 @@ export namespace Prisma {
 
   export type RoomSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    code?: boolean
     name?: boolean
     hostId?: boolean
     currentStreamId?: boolean
@@ -2569,6 +2578,7 @@ export namespace Prisma {
 
   export type RoomSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    code?: boolean
     name?: boolean
     hostId?: boolean
     currentStreamId?: boolean
@@ -2579,6 +2589,7 @@ export namespace Prisma {
 
   export type RoomSelectScalar = {
     id?: boolean
+    code?: boolean
     name?: boolean
     hostId?: boolean
     currentStreamId?: boolean
@@ -2586,7 +2597,7 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type RoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "hostId" | "currentStreamId" | "isActive" | "createdAt", ExtArgs["result"]["room"]>
+  export type RoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "hostId" | "currentStreamId" | "isActive" | "createdAt", ExtArgs["result"]["room"]>
   export type RoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     host?: boolean | UserDefaultArgs<ExtArgs>
     streams?: boolean | Room$streamsArgs<ExtArgs>
@@ -2607,6 +2618,7 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
+      code: string
       name: string
       hostId: string
       currentStreamId: string | null
@@ -3038,6 +3050,7 @@ export namespace Prisma {
    */
   interface RoomFieldRefs {
     readonly id: FieldRef<"Room", 'String'>
+    readonly code: FieldRef<"Room", 'String'>
     readonly name: FieldRef<"Room", 'String'>
     readonly hostId: FieldRef<"Room", 'String'>
     readonly currentStreamId: FieldRef<"Room", 'String'>
@@ -5733,6 +5746,7 @@ export namespace Prisma {
 
   export const RoomScalarFieldEnum: {
     id: 'id',
+    code: 'code',
     name: 'name',
     hostId: 'hostId',
     currentStreamId: 'currentStreamId',
@@ -5935,6 +5949,7 @@ export namespace Prisma {
     OR?: RoomWhereInput[]
     NOT?: RoomWhereInput | RoomWhereInput[]
     id?: StringFilter<"Room"> | string
+    code?: StringFilter<"Room"> | string
     name?: StringFilter<"Room"> | string
     hostId?: StringFilter<"Room"> | string
     currentStreamId?: StringNullableFilter<"Room"> | string | null
@@ -5946,6 +5961,7 @@ export namespace Prisma {
 
   export type RoomOrderByWithRelationInput = {
     id?: SortOrder
+    code?: SortOrder
     name?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrderInput | SortOrder
@@ -5957,6 +5973,7 @@ export namespace Prisma {
 
   export type RoomWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    code?: string
     AND?: RoomWhereInput | RoomWhereInput[]
     OR?: RoomWhereInput[]
     NOT?: RoomWhereInput | RoomWhereInput[]
@@ -5967,10 +5984,11 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Room"> | Date | string
     host?: XOR<UserScalarRelationFilter, UserWhereInput>
     streams?: StreamListRelationFilter
-  }, "id">
+  }, "id" | "code">
 
   export type RoomOrderByWithAggregationInput = {
     id?: SortOrder
+    code?: SortOrder
     name?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrderInput | SortOrder
@@ -5986,6 +6004,7 @@ export namespace Prisma {
     OR?: RoomScalarWhereWithAggregatesInput[]
     NOT?: RoomScalarWhereWithAggregatesInput | RoomScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Room"> | string
+    code?: StringWithAggregatesFilter<"Room"> | string
     name?: StringWithAggregatesFilter<"Room"> | string
     hostId?: StringWithAggregatesFilter<"Room"> | string
     currentStreamId?: StringNullableWithAggregatesFilter<"Room"> | string | null
@@ -6194,6 +6213,7 @@ export namespace Prisma {
 
   export type RoomCreateInput = {
     id?: string
+    code: string
     name: string
     currentStreamId?: string | null
     isActive?: boolean
@@ -6204,6 +6224,7 @@ export namespace Prisma {
 
   export type RoomUncheckedCreateInput = {
     id?: string
+    code: string
     name: string
     hostId: string
     currentStreamId?: string | null
@@ -6214,6 +6235,7 @@ export namespace Prisma {
 
   export type RoomUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -6224,6 +6246,7 @@ export namespace Prisma {
 
   export type RoomUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -6234,6 +6257,7 @@ export namespace Prisma {
 
   export type RoomCreateManyInput = {
     id?: string
+    code: string
     name: string
     hostId: string
     currentStreamId?: string | null
@@ -6243,6 +6267,7 @@ export namespace Prisma {
 
   export type RoomUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -6251,6 +6276,7 @@ export namespace Prisma {
 
   export type RoomUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -6564,6 +6590,7 @@ export namespace Prisma {
 
   export type RoomCountOrderByAggregateInput = {
     id?: SortOrder
+    code?: SortOrder
     name?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
@@ -6573,6 +6600,7 @@ export namespace Prisma {
 
   export type RoomMaxOrderByAggregateInput = {
     id?: SortOrder
+    code?: SortOrder
     name?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
@@ -6582,6 +6610,7 @@ export namespace Prisma {
 
   export type RoomMinOrderByAggregateInput = {
     id?: SortOrder
+    code?: SortOrder
     name?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
@@ -7228,6 +7257,7 @@ export namespace Prisma {
 
   export type RoomCreateWithoutHostInput = {
     id?: string
+    code: string
     name: string
     currentStreamId?: string | null
     isActive?: boolean
@@ -7237,6 +7267,7 @@ export namespace Prisma {
 
   export type RoomUncheckedCreateWithoutHostInput = {
     id?: string
+    code: string
     name: string
     currentStreamId?: string | null
     isActive?: boolean
@@ -7334,6 +7365,7 @@ export namespace Prisma {
     OR?: RoomScalarWhereInput[]
     NOT?: RoomScalarWhereInput | RoomScalarWhereInput[]
     id?: StringFilter<"Room"> | string
+    code?: StringFilter<"Room"> | string
     name?: StringFilter<"Room"> | string
     hostId?: StringFilter<"Room"> | string
     currentStreamId?: StringNullableFilter<"Room"> | string | null
@@ -7488,6 +7520,7 @@ export namespace Prisma {
 
   export type RoomCreateWithoutStreamsInput = {
     id?: string
+    code: string
     name: string
     currentStreamId?: string | null
     isActive?: boolean
@@ -7497,6 +7530,7 @@ export namespace Prisma {
 
   export type RoomUncheckedCreateWithoutStreamsInput = {
     id?: string
+    code: string
     name: string
     hostId: string
     currentStreamId?: string | null
@@ -7565,6 +7599,7 @@ export namespace Prisma {
 
   export type RoomUpdateWithoutStreamsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -7574,6 +7609,7 @@ export namespace Prisma {
 
   export type RoomUncheckedUpdateWithoutStreamsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7726,6 +7762,7 @@ export namespace Prisma {
 
   export type RoomCreateManyHostInput = {
     id?: string
+    code: string
     name: string
     currentStreamId?: string | null
     isActive?: boolean
@@ -7793,6 +7830,7 @@ export namespace Prisma {
 
   export type RoomUpdateWithoutHostInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -7802,6 +7840,7 @@ export namespace Prisma {
 
   export type RoomUncheckedUpdateWithoutHostInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
@@ -7811,6 +7850,7 @@ export namespace Prisma {
 
   export type RoomUncheckedUpdateManyWithoutHostInput = {
     id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean

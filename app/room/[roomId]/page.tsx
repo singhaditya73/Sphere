@@ -26,6 +26,7 @@ interface Stream {
 
 interface Room {
   id: string;
+  code: string;
   name: string;
   host: {
     id: string;
@@ -302,19 +303,34 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                  STEREO • DOLBY NR
             </div>
             <h1 className="text-4xl md:text-6xl font-heading font-black text-foreground uppercase tracking-tighter leading-none">{room.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
-                <p className="text-muted-foreground font-mono text-xs tracking-widest uppercase">
-                // TAPE_HOST: {room.host.email.split('@')[0]}
+            <div className="flex items-center gap-4 mt-2 flex-wrap">
+                <p className="font-mono text-xs text-muted-foreground tracking-widest uppercase">
+                // HOST: {room.host.email.split('@')[0]}
                 </p>
+                {room.code && (
+                  <>
+                    <span className="font-mono text-sm text-primary font-bold bg-primary/10 px-3 py-1 border border-primary/30">{room.code}</span>
+                    <button 
+                      onClick={() => {
+                          navigator.clipboard.writeText(room.code);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-widest transition-colors"
+                    >
+                      {copied ? "COPIED!" : "COPY CODE"}
+                    </button>
+                  </>
+                )}
                 <button 
                   onClick={() => {
                       navigator.clipboard.writeText(window.location.href);
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                   }}
-                  className="bg-primary/20 hover:bg-primary/40 text-primary border border-primary/50 px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-widest transition-colors flex items-center gap-2"
+                  className="bg-muted hover:bg-muted/80 text-muted-foreground border border-border px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-widest transition-colors"
                 >
-                  {copied ? "LINK COPIED!" : "SHARE FREQUENCY"}
+                  COPY LINK
                 </button>
             </div>
           </div>
@@ -388,8 +404,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     
                     {/* Tape Reels Animation Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center gap-24 pointer-events-none z-20 opacity-80">
-                       <div className={`w-24 h-24 border-8 border-zinc-800 bg-black rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
-                          <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
+                       <div className={`w-24 h-24 border-8 border-border bg-card rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
+                          <div className="w-20 h-20 border-2 border-muted-foreground/30 border-dashed rounded-full bg-muted">
                              <div className="w-full h-full flex items-center justify-center">
                                <div className="w-2 h-2 bg-white rounded-full"></div>
                                <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>
@@ -397,8 +413,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                              </div>
                           </div>
                        </div>
-                       <div className={`w-24 h-24 border-8 border-zinc-800 bg-black rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
-                          <div className="w-20 h-20 border-2 border-zinc-700 border-dashed rounded-full bg-zinc-900">
+                       <div className={`w-24 h-24 border-8 border-border bg-card rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
+                          <div className="w-20 h-20 border-2 border-muted-foreground/30 border-dashed rounded-full bg-muted">
                              <div className="w-full h-full flex items-center justify-center">
                                <div className="w-2 h-2 bg-white rounded-full"></div>
                                <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>

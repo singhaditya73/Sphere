@@ -25,6 +25,7 @@ export async function GET() {
 
     const formattedRooms = rooms.map(room => ({
       id: room.id,
+      code: room.code,
       name: room.name,
       hostEmail: room.host.email,
       streamCount: room._count.streams,
