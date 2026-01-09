@@ -5,7 +5,7 @@ import React from "react";
 import { ModeToggle } from "./mode-toggle";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { ArrowRight, Music } from "lucide-react";
+import { ArrowRight, Circle } from "lucide-react";
 
 
 import {
@@ -26,26 +26,27 @@ export function Appbar({ className = "" }: AppbarProps) {
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none ${className}`}>
-      <header className="pointer-events-auto w-full max-w-5xl rounded-full border border-border/40 bg-background/70 backdrop-blur-xl shadow-2xl shadow-primary/5 flex items-center justify-between pl-6 pr-2 py-2 transition-all duration-300 hover:border-primary/20 hover:shadow-primary/10">
+      <header className="pointer-events-auto w-full max-w-5xl rounded-full border border-border/40 bg-background/80 backdrop-blur-xl shadow-2xl shadow-primary/10 flex items-center justify-between pl-6 pr-2 py-2 transition-all duration-300 hover:border-primary/30 hover:shadow-primary/20 glow-green/0 hover:glow-green">
         
         {/* LOGO */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="bg-primary/10 p-1.5 rounded-full group-hover:bg-primary/20 transition-colors">
-               <Music className="h-5 w-5 text-primary transition-transform group-hover:scale-90 group-hover:rotate-12" />
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="relative">
+               <Circle className="h-8 w-8 text-primary fill-primary/20 transition-all group-hover:fill-primary/40 group-hover:scale-110" strokeWidth={2} />
+               <div className="absolute inset-0 rounded-full bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
-            <span className="inline-block font-heading font-black text-xl tracking-tight transition-colors group-hover:text-primary">
-              BeatNet
+            <span className="inline-block font-heading font-black text-2xl tracking-tight transition-colors group-hover:text-primary text-glow-green/0 group-hover:text-glow-green">
+              sphere
             </span>
           </Link>
           
           {/* DESKTOP NAV */}
-          <nav className="hidden gap-1 md:flex items-center ml-4">
-            {["Features", "How It Works", "Community"].map((item) => (
+          <nav className="hidden gap-1 md:flex items-center ml-6">
+            {["Features", "Experience", "Community"].map((item) => (
                <Link
                 key={item}
                 href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all hover:bg-muted/50 rounded-full relative group"
+                className="px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all hover:bg-primary/10 rounded-full"
               >
                 {item}
               </Link>
