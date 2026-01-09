@@ -2,12 +2,9 @@
 
 import { signOut, useSession } from "next-auth/react";
 import React from "react";
-import { ModeToggle } from "./mode-toggle";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { ArrowRight, Circle } from "lucide-react";
-
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,8 +53,6 @@ export function Appbar({ className = "" }: AppbarProps) {
 
         {/* ACTIONS */}
         <div className="flex items-center space-x-3">
-          <ModeToggle />
-
           {session.data?.user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -85,7 +80,7 @@ export function Appbar({ className = "" }: AppbarProps) {
                     onClick={() => signOut()}
                   >
                     <ArrowRight className="mr-2 h-3 w-3" />
-                    Eject Cassette
+                    Disconnect
                   </DropdownMenuItem>
                 </div>
               </DropdownMenuContent>
@@ -97,7 +92,6 @@ export function Appbar({ className = "" }: AppbarProps) {
               </Button>
             </Link>
           )}
-
         </div>
       </header>
     </div>

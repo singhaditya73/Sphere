@@ -119,7 +119,7 @@ export default function Home() {
              >
                 <span className="inline-block px-4 py-1 rounded-full glass text-sm font-medium text-primary mb-4">Live Now</span>
                 <h2 className="font-heading text-5xl md:text-6xl font-black tracking-tight mb-4">
-                   Active <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Sessions</span>
+                   Active <span className="text-secondary text-glow-purple">Sessions</span>
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto">Join a live listening session or start your own frequency</p>
              </motion.div>
@@ -236,7 +236,7 @@ export default function Home() {
               >
                  <span className="inline-block px-4 py-1 rounded-full glass text-sm font-medium text-secondary mb-4">Why Sphere</span>
                  <h2 className="font-heading text-5xl md:text-6xl font-black tracking-tight mb-4">
-                    Built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary">Artists</span>
+                    Built for <span className="text-secondary text-glow-purple">Artists</span>
                  </h2>
                  <p className="text-muted-foreground max-w-md mx-auto">Experience music the way it was meant to be shared</p>
               </motion.div>
@@ -280,7 +280,7 @@ export default function Home() {
               >
                  <span className="inline-block px-4 py-1 rounded-full glass text-sm font-medium text-primary mb-4">Simple</span>
                  <h2 className="font-heading text-5xl md:text-6xl font-black tracking-tight mb-4">
-                    How It <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Works</span>
+                    How It <span className="text-primary text-glow-green">Works</span>
                  </h2>
               </motion.div>
 
@@ -300,7 +300,7 @@ export default function Home() {
               >
                  <span className="inline-block px-4 py-1 rounded-full glass text-sm font-medium text-secondary mb-4">Community</span>
                  <h2 className="font-heading text-5xl md:text-6xl font-black tracking-tight">
-                    What Users <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary">Say</span>
+                    What Users <span className="text-primary text-glow-green">Say</span>
                  </h2>
               </motion.div>
 
@@ -337,7 +337,7 @@ export default function Home() {
                  className="glass-card p-12 md:p-16"
               >
                  <h2 className="font-heading text-4xl md:text-5xl font-black tracking-tight mb-6">
-                    Ready to Start <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Listening?</span>
+                    Ready to Start <span className="text-primary text-glow-green">Listening?</span>
                  </h2>
                  <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
                     Join thousands of music lovers already on Sphere. Your next favorite track is waiting.
