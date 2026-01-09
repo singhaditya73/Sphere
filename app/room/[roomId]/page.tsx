@@ -5,9 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, ThumbsUp, ThumbsDown, Trash2, ArrowRight, Pause, SkipForward } from "lucide-react";
+
+import { Loader2, Play, ThumbsUp, Pause, SkipForward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 
@@ -289,11 +288,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-black">
-      <header className="fixed top-0 z-50 w-full border-b-4 border-border bg-background/90 backdrop-blur-md">
-        <div className="container flex h-20 items-center space-x-4">
-          <Appbar />
-        </div>
-      </header>
+      <Appbar />
  
       <main className="container flex-1 py-32 relative">
         <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-border pb-8">
