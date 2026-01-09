@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Play, ThumbsUp, Pause, SkipForward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
+import { AudioVisualizer } from "@/components/audio-visualizer";
 
 interface Stream {
   id: string;
@@ -289,6 +290,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Appbar />
+      <AudioVisualizer isPlaying={isPlaying} />
  
       <main className="container flex-1 py-32 px-6 relative max-w-7xl mx-auto">
         {/* Room Header */}

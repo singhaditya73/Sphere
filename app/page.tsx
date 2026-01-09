@@ -4,11 +4,14 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Headphones, Zap, Play, Radio, Vote, Music } from "lucide-react"
+import { ArrowRight, Play, Radio } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Appbar } from "@components/Appbar"
 import { Testimonial } from "@/components/testimonial"
 import { HowItWorks } from "@/components/how-it-works"
+import { BentoFeatures } from "@/components/bento-features"
+import { SessionsMarquee } from "@/components/sessions-marquee"
+import { MegaFooter } from "@/components/mega-footer"
 import dynamic from "next/dynamic"
 
 // Dynamic import for Three.js component (client-side only)
@@ -124,83 +127,47 @@ export default function Home() {
                 <p className="text-muted-foreground max-w-md mx-auto">Join a live listening session or start your own frequency</p>
              </motion.div>
 
-             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+             <div className="flex flex-col gap-12">
                
-               {/* LEFT COLUMN: SESSION LIST */}
-               <div className="lg:col-span-8">
+               {/* MARQUEE SECTION */}
+               <div className="w-full -mx-6 md:mx-0">
                  {loadingRooms ? (
-                   <div className="text-center py-16 glass-card">
+                   <div className="text-center py-16">
                       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="text-muted-foreground">Scanning frequencies...</p>
                    </div>
                  ) : topRooms.length === 0 ? (
-                   <div className="text-center py-16 glass-card">
+                   <div className="text-center py-16 glass-card max-w-md mx-auto">
                      <p className="text-muted-foreground mb-4">No active sessions found</p>
                      <Link href="/dashboard" className="btn-neon inline-flex items-center gap-2 text-sm">
                         Start a Session <ArrowRight className="w-4 h-4" />
                      </Link>
                    </div>
                  ) : (
-                   <div className="space-y-4">
-                     {topRooms.slice(0, 5).map((room, index) => (
-                       <motion.div
-                          key={room.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.4, delay: index * 0.1 }}
-                       >
-                         <Link 
-                           href={`/room/${room.code}`}
-                           className="group glass-card p-5 flex items-center justify-between hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
-                         >
-                            <div className="flex items-center gap-5">
-                               {/* Rank */}
-                               <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-heading text-xl font-black text-primary group-hover:bg-primary/20 transition-colors">
-                                 {index + 1}
-                               </div>
-                               
-                               {/* Info */}
-                               <div>
-                                  <h3 className="font-heading font-bold text-lg text-foreground group-hover:text-primary transition-colors">{room.name}</h3>
-                                  <div className="flex items-center gap-3 mt-1">
-                                     <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">{room.code}</span>
-                                     <span className="text-xs text-muted-foreground">{room.streamCount} tracks</span>
-                                  </div>
-                               </div>
-                            </div>
-
-                            {/* Join Button */}
-                            <span className="px-4 py-2 rounded-full text-sm font-medium text-primary border border-primary/30 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex items-center gap-2">
-                               Join <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                            </span>
-                         </Link>
-                       </motion.div>
-                     ))}
-                   </div>
+                   <SessionsMarquee rooms={topRooms} />
                  )}
                </div>
 
-               {/* RIGHT COLUMN: JOIN FORM */}
-               <div className="lg:col-span-4">
-                 <div className="glass-card p-6 sticky top-24">
+               {/* DIRECT CONNECT FORM (Centered) */}
+               <div className="max-w-md mx-auto w-full">
+                 <div className="glass-card p-6">
                     <div className="flex items-center gap-3 mb-6">
                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                           <Radio className="w-5 h-5 text-primary" />
                        </div>
                        <div>
                           <h3 className="font-heading font-bold text-lg">Direct Connect</h3>
-                          <p className="text-xs text-muted-foreground">Enter a room code</p>
+                          <p className="text-xs text-muted-foreground">Know the code?</p>
                        </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="flex gap-2">
                        <input
                          type="text"
                          value={roomIdInput}
                          onChange={(e) => setRoomIdInput(e.target.value)}
-                         placeholder="Enter room code..."
-                         className="w-full h-12 px-4 bg-muted/50 rounded-xl border border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none transition-colors"
+                         placeholder="Paste room code..."
+                         className="flex-1 h-12 px-4 bg-muted/50 rounded-xl border border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none transition-colors"
                        />
                        <button
                          onClick={() => {
@@ -210,10 +177,9 @@ export default function Home() {
                              : roomIdInput.trim();
                            router.push(`/room/${id}`);
                          }}
-                         className="w-full btn-neon h-12 flex items-center justify-center gap-2"
+                         className="btn-neon h-12 px-6 flex items-center justify-center"
                        >
-                         <span>Connect</span>
-                         <ArrowRight className="w-4 h-4" />
+                         <ArrowRight className="w-5 h-5" />
                        </button>
                     </div>
                  </div>
@@ -241,28 +207,7 @@ export default function Home() {
                  <p className="text-muted-foreground max-w-md mx-auto">Experience music the way it was meant to be shared</p>
               </motion.div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {[
-                    { icon: Vote, title: "Democratic Playlists", desc: "Everyone votes. Best tracks rise. Pure democracy in action." },
-                    { icon: Headphones, title: "Perfect Sync", desc: "All listeners hear the exact same beat at the exact same moment." },
-                    { icon: Zap, title: "Zero Ads", desc: "100% music throughput. No interruptions. Ever." }
-                 ].map((feature, i) => (
-                    <motion.div
-                       key={feature.title}
-                       initial={{ opacity: 0, y: 30 }}
-                       whileInView={{ opacity: 1, y: 0 }}
-                       viewport={{ once: true }}
-                       transition={{ duration: 0.5, delay: i * 0.1 }}
-                       className="glass-card p-8 text-center group hover:border-primary/30 transition-all"
-                    >
-                       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/20 transition-colors">
-                          <feature.icon className="w-8 h-8 text-primary" />
-                       </div>
-                       <h3 className="font-heading font-bold text-xl mb-3">{feature.title}</h3>
-                       <p className="text-muted-foreground text-sm">{feature.desc}</p>
-                    </motion.div>
-                 ))}
-              </div>
+              <BentoFeatures />
            </div>
         </section>
 
@@ -355,31 +300,7 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-border/50 py-12 relative">
-         <div className="container mx-auto max-w-6xl px-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                     <Music className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="font-heading font-black text-xl">sphere</span>
-               </div>
-               
-               <p className="text-sm text-muted-foreground">
-                  © {new Date().getFullYear()} Sphere. All rights reserved.
-               </p>
-               
-               <div className="flex gap-6">
-                  <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                     Terms
-                  </Link>
-                  <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                     Privacy
-                  </Link>
-               </div>
-            </div>
-         </div>
-      </footer>
+      <MegaFooter />
     </div>
   )
 }
