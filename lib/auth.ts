@@ -11,39 +11,30 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      console.log("SignIn Callback started for:", user.email);
       if (!user.email) {
-        console.log("No email provided in user object");
         return false;
       }
       try {
-        console.log("Checking existing user...");
-        // Check if user exists
         const existingUser = await prismaClient.user.findUnique({
           where: { email: user.email },
         });
-        console.log("Existing user result:", existingUser);
 
-        // Create user if doesn't exist
         if (!existingUser) {
-          console.log("Creating new user...");
-          const newUser = await prismaClient.user.create({
+          await prismaClient.user.create({
             data: {
               email: user.email,
               provider: "Google",
             },
           });
-          console.log("New user created:", newUser);
         }
+        return true;
       } catch (error) {
-        console.error("Error in signIn callback:", error);
+        console.error("SignIn error:", error);
         return false;
       }
-      return true;
     },
     async session({ session }) {
       if (session?.user?.email) {
-        // Add user ID to session
         const dbUser = await prismaClient.user.findUnique({
           where: { email: session.user.email },
         });
@@ -67,6 +58,6 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
   },
-  debug: true,
   secret: process.env.NEXTAUTH_SECRET,
 };
+

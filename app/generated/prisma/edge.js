@@ -166,7 +166,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\ADITYA SINGH\\Desktop\\projects\\beatnet\\app\\generated\\prisma",
+      "value": "/home/aditya/Desktop/BeatNet/app/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -175,12 +175,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "rhel-openssl-3.0.x",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\ADITYA SINGH\\Desktop\\projects\\beatnet\\prisma\\schema.prisma",
+    "sourceFilePath": "/home/aditya/Desktop/BeatNet/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

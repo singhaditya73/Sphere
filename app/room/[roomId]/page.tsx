@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { Loader2, Play, ThumbsUp, Pause, SkipForward } from "lucide-react";
+import { Loader2, Play, ThumbsUp, Pause, SkipForward, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 import { AudioVisualizer } from "@/components/audio-visualizer";
@@ -52,6 +52,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [playbackRate, setPlaybackRate] = useState(1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [loadingNext, setLoadingNext] = useState(false);
   const playerRef = useRef<any>(null);
 
   const updateVolume = (newVolume: number) => {
@@ -105,9 +106,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             videoId: room.currentStream.extractedId,
             playerVars: {
                 'autoplay': 1,
-                'controls': 0,
+                'controls': 1,
                 'modestbranding': 1,
                 'enablejsapi': 1,
+                'rel': 0,
                 'origin': window.location.origin
             },
             events: {
@@ -177,11 +179,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
     fetchRoomData();
     fetchMyUpvotes();
-    // Poll for updates every 5 seconds
+    // Poll for updates every 2 seconds for near real-time feel
     const interval = setInterval(() => {
       fetchRoomData();
       fetchMyUpvotes();
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [session, roomId]);
 
@@ -227,6 +229,26 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   const handleUpvote = async (streamId: string, hasUpvoted: boolean) => {
     setUpvotingIds((prev) => new Set(prev).add(streamId));
+    
+    // Optimistic UI update — instantly reflect the vote change
+    setMyUpvotedStreamIds((prev) => {
+      const newSet = new Set(prev);
+      if (hasUpvoted) newSet.delete(streamId);
+      else newSet.add(streamId);
+      return newSet;
+    });
+    setRoom((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        queue: prev.queue.map((s) =>
+          s.id === streamId
+            ? { ...s, upvotes: s.upvotes + (hasUpvoted ? -1 : 1) }
+            : s
+        ).sort((a, b) => b.upvotes - a.upvotes),
+      };
+    });
+
     try {
       const endpoint = hasUpvoted ? "/api/streams/downvote" : "/api/streams/upvote";
       const response = await fetch(endpoint, {
@@ -241,6 +263,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       }
     } catch (error) {
       console.error("Error voting:", error);
+      // Revert optimistic update on error
+      fetchRoomData();
+      fetchMyUpvotes();
     } finally {
       setUpvotingIds((prev) => {
         const newSet = new Set(prev);
@@ -251,18 +276,30 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   };
 
   const handlePlayNext = async () => {
+    if (loadingNext) return; // Prevent double-clicks
     try {
-      // Optimistic UI update
+      setLoadingNext(true);
       setIsPlaying(false);
+      
+      // Destroy current player before loading next
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+      
       const response = await fetch(`/api/rooms/${roomId}/next`, {
         method: "POST",
       });
 
       if (response.ok) {
-        fetchRoomData();
+        setProgress(0);
+        setDuration(0);
+        await fetchRoomData();
       }
     } catch (error) {
       console.error("Error playing next:", error);
+    } finally {
+      setLoadingNext(false);
     }
   };
 
@@ -354,69 +391,54 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             
             {room.currentStream ? (
               <div className="flex flex-col gap-8 relative z-0">
-                 {/* Tape Window / Visualizer */}
-                  {/* Tape Window / Visualizer */}
+                 {/* Video Player Window */}
                 <motion.div 
                     initial={{ scaleY: 0, opacity: 0 }}
                     animate={{ scaleY: 1, opacity: 1 }}
                     transition={{ duration: 0.4, ease: "circOut" }}
-                    className="relative mx-auto w-full max-w-3xl aspect-video bg-black rounded border-8 border-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,1)] overflow-hidden group transition-transform duration-100 ease-in-out"
+                    className="relative mx-auto w-full max-w-3xl aspect-video bg-black rounded-xl border border-border/50 shadow-2xl shadow-primary/10 overflow-hidden group"
                 >
-                    {/* The Media (Hidden Player / Thumbnail) */}
-                    <div className="absolute inset-0 z-0">
-                      {room.currentStream.type === "Youtube" && (
-                         <div id="youtube-player" className="w-full h-full opacity-0 pointer-events-none" />
-                      )}
-                      {room.currentStream.type === "Spotify" && (
-                         <iframe
-                           src={`https://open.spotify.com/embed/${
-                             room.currentStream.url.includes("playlist")
-                               ? "playlist"
-                               : room.currentStream.url.includes("album")
-                               ? "album"
-                               : "track"
-                           }/${room.currentStream.extractedId}`}
-                           className="w-full h-full opacity-0 pointer-events-none"
-                           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                         />
-                      )}
-                    </div>
-
-                    {/* Visualizer (Behind Thumbnail) */}
-                    <div className="absolute inset-0 z-[5]">
-                       <AudioVisualizer isPlaying={isPlaying} className="opacity-60" />
-                    </div>
+                    {/* YouTube Player — Visible */}
+                    {room.currentStream.type === "Youtube" && (
+                      <div id="youtube-player" className="absolute inset-0 w-full h-full z-10" />
+                    )}
                     
-                    {/* Static Thumbnail Overlay (Visible) */}
-                    <div className="absolute inset-0 z-10 pointer-events-none">
+                    {/* Spotify Embed — Visible */}
+                    {room.currentStream.type === "Spotify" && (
+                      <iframe
+                        src={`https://open.spotify.com/embed/${
+                          room.currentStream.url.includes("playlist")
+                            ? "playlist"
+                            : room.currentStream.url.includes("album")
+                            ? "album"
+                            : "track"
+                        }/${room.currentStream.extractedId}?theme=0`}
+                        className="absolute inset-0 w-full h-full z-10"
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      />
+                    )}
+
+                    {/* Fallback thumbnail while player loads */}
+                    <div className="absolute inset-0 z-0 flex items-center justify-center bg-card">
                        <img
                           src={room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`}
                           alt="Album Art"
-                          className="w-full h-full object-cover opacity-80 brightness-75"
+                          className="w-full h-full object-cover opacity-40 blur-sm"
                        />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <Music className="w-16 h-16 text-muted-foreground/30" />
+                       </div>
                     </div>
                     
-                    {/* Tape Reels Animation Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center gap-24 pointer-events-none z-20 opacity-80">
-                       <div className={`w-24 h-24 border-8 border-border bg-card rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
-                          <div className="w-20 h-20 border-2 border-muted-foreground/30 border-dashed rounded-full bg-muted">
-                             <div className="w-full h-full flex items-center justify-center">
-                               <div className="w-2 h-2 bg-white rounded-full"></div>
-                               <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>
-                               <div className="absolute w-full h-1 bg-zinc-800 -rotate-45"></div>
-                             </div>
-                          </div>
-                       </div>
-                       <div className={`w-24 h-24 border-8 border-border bg-card rounded-full flex items-center justify-center shadow-2xl ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`} style={{ animationDuration: `${4 / playbackRate}s` }}>
-                          <div className="w-20 h-20 border-2 border-muted-foreground/30 border-dashed rounded-full bg-muted">
-                             <div className="w-full h-full flex items-center justify-center">
-                               <div className="w-2 h-2 bg-white rounded-full"></div>
-                               <div className="absolute w-full h-1 bg-zinc-800 rotate-45"></div>
-                               <div className="absolute w-full h-1 bg-zinc-800 -rotate-45"></div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
+                    {/* Loading next track overlay */}
+                    {loadingNext && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                          <span className="text-sm font-mono text-primary">Loading next track...</span>
+                        </div>
+                      </div>
+                    )}
                 </motion.div>
                 
                 {/* Tape Counter / Progress Bar */}
@@ -470,25 +492,25 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     </div>
                   </div>
                   
-                  {isHost && (
-                    <div className="flex gap-3">
-                        <Button 
-                            onClick={() => {
-                                if (playerRef.current) {
-                                    if (isPlaying) playerRef.current.pauseVideo();
-                                    else playerRef.current.playVideo();
-                                    setIsPlaying(!isPlaying);
-                                }
-                            }}
-                            className="bg-muted hover:bg-muted/80 text-foreground h-14 w-14 rounded-full flex items-center justify-center border border-border"
-                        >
-                            {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
+                  <div className="flex gap-3">
+                      <Button 
+                          onClick={() => {
+                              if (playerRef.current) {
+                                  if (isPlaying) playerRef.current.pauseVideo();
+                                  else playerRef.current.playVideo();
+                                  setIsPlaying(!isPlaying);
+                              }
+                          }}
+                          className="bg-muted hover:bg-muted/80 text-foreground h-14 w-14 rounded-full flex items-center justify-center border border-border"
+                      >
+                          {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
+                      </Button>
+                      {isHost && (
+                        <Button onClick={handlePlayNext} disabled={loadingNext} className="btn-neon h-14 w-14 rounded-full flex items-center justify-center">
+                            {loadingNext ? <Loader2 className="h-5 w-5 animate-spin" /> : <SkipForward className="h-5 w-5" />}
                         </Button>
-                        <Button onClick={handlePlayNext} className="btn-neon h-14 w-14 rounded-full flex items-center justify-center">
-                            <SkipForward className="h-5 w-5" />
-                        </Button>
-                    </div>
-                  )}
+                      )}
+                  </div>
                 </div>
               </div>
             ) : (
