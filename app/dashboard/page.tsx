@@ -236,7 +236,7 @@ export default function DashboardPage() {
                 <motion.div
                   key={room.id}
                   variants={item}
-                  className="cassette-shell p-3 cursor-pointer hover:-translate-y-2 transition-transform duration-300 group"
+                  className="cassette-shell relative p-3 cursor-pointer hover:-translate-y-2 transition-transform duration-300 group"
                   onClick={() => handleJoinRoom(room.id)}
                 >
                    {/* Cassette Label Area */}

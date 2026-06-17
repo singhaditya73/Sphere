@@ -383,7 +383,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     </div>
 
                     {/* Visualizer (Behind Thumbnail) */}
-                    <div className="absolute inset-0 z-5">
+                    <div className="absolute inset-0 z-[5]">
                        <AudioVisualizer isPlaying={isPlaying} className="opacity-60" />
                     </div>
                     
