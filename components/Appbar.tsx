@@ -65,7 +65,7 @@ export function Appbar({ className = "" }: AppbarProps) {
                 className="h-9 w-9 rounded-full border border-[#27272A] hover:border-[#10B981]/50 overflow-hidden transition-colors focus:outline-none cursor-pointer"
               >
                 {user.image ? (
-                  <img src={user.image} alt={user.name ?? "User"} className="w-full h-full object-cover" />
+                  <img src={user.image} alt={user.name ?? "User"} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-[#18181B] flex items-center justify-center text-xs font-bold text-[#10B981]">
                     {initials}
@@ -79,9 +79,17 @@ export function Appbar({ className = "" }: AppbarProps) {
                     <p className="text-xs font-bold text-[#FAFAFA] truncate">{user.name}</p>
                     <p className="text-[10px] text-[#A1A1AA] truncate mt-0.5">{user.email}</p>
                   </div>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] transition-colors text-left md:hidden"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    Dashboard
+                  </Link>
                   <button
                     onClick={() => { setOpen(false); signOut(); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] transition-colors text-left cursor-pointer border-t border-[#27272A]/40 md:border-t-0"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     Sign out

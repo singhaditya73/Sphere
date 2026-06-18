@@ -467,7 +467,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-36">
       <Appbar />
 
-      <main className="container flex-1 py-24 px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
+      <main className="container flex-1 py-20 md:py-24 px-4 md:px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
 
         {/* LEFT & CENTER AREAS (Col-span 8) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
@@ -558,7 +558,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 </div>
 
                 {/* Track Details & controls */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between h-56 py-1.5 self-stretch w-full">
+                <div className="flex-1 min-w-0 flex flex-col justify-between md:h-56 h-auto gap-5 py-1.5 self-stretch w-full">
                   <div>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] uppercase tracking-wider font-bold text-[#10B981]">

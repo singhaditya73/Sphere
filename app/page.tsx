@@ -163,7 +163,7 @@ export default function Home() {
       <Appbar />
 
       {/* ── HERO SECTION ──────────────────────────────── */}
-      <section className="relative pt-36 pb-20 px-6 overflow-hidden">
+      <section className="relative pt-28 md:pt-36 pb-12 md:pb-20 px-4 md:px-6 overflow-hidden">
         {/* Subtle emerald lighting overlay */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#10B981]/3 rounded-full blur-[120px] pointer-events-none" />
 
@@ -356,7 +356,7 @@ export default function Home() {
       </section>
 
       {/* ── LIVE ROOMS SECTION ───────────────────────── */}
-      <section id="rooms" className="py-20 px-6 border-t border-[#27272A]/40 relative">
+      <section id="rooms" className="py-12 md:py-20 px-4 md:px-6 border-t border-[#27272A]/40 relative">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-end gap-4 flex-wrap mb-10">
             <div>
@@ -398,12 +398,12 @@ export default function Home() {
                     href={`/room/${room.id}`}
                     className="block group"
                   >
-                    <div className="bg-[#121212] border border-[#27272A] hover:border-[#3F3F46] rounded-2xl p-5 flex flex-col justify-between h-56 transition-all duration-300 relative overflow-hidden hover:translate-y-[-2px]">
+                    <div className="bg-[#121212] border border-[#27272A] hover:border-[#3F3F46] rounded-2xl p-5 flex flex-col justify-between min-h-[224px] h-full transition-all duration-300 relative overflow-hidden hover:translate-y-[-2px]">
                       
-                      {/* Top Row */}
+                      {/* Top & Middle Content */}
                       <div>
                         <div className="flex justify-between items-start gap-3">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <h3 className="font-heading font-black text-base text-white truncate group-hover:text-[#10B981] transition-colors">
                               {room.name}
                             </h3>
@@ -413,7 +413,7 @@ export default function Home() {
                           </div>
                           
                           {/* Live/Trending indicator badge */}
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {isTrending ? (
                               <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[8px] font-bold uppercase tracking-wider text-[#F59E0B]">
                                 Trending
@@ -427,39 +427,43 @@ export default function Home() {
                         </div>
 
                         {/* Playing details */}
-                        <div className="mt-4 flex gap-3 items-center">
-                          <div className="w-12 h-12 rounded-lg bg-[#090909] border border-[#27272A] overflow-hidden shrink-0 flex items-center justify-center text-[#71717A]">
+                        <div className="mt-4 flex gap-3 items-center bg-[#090909]/40 p-2 rounded-xl border border-[#27272A]/40">
+                          <div className="w-10 h-10 rounded-lg bg-[#090909] border border-[#27272A]/80 overflow-hidden shrink-0 flex items-center justify-center text-[#71717A]">
                             {room.currentStream ? (
                               <img src={room.currentStream.smallImg} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <Music className="w-4 h-4 opacity-40" />
                             )}
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <span className="text-[8px] font-bold text-[#10B981] uppercase block">Now Playing</span>
-                            <p className="text-xs font-bold text-white truncate max-w-[180px]">
+                            <p className="text-xs font-bold text-white truncate">
                               {room.currentStream?.title || "No track active"}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Bottom Row metadata */}
-                      <div className="border-t border-[#27272A]/60 pt-4 mt-4 flex justify-between items-center text-[10px] font-semibold text-[#A1A1AA]">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5 text-[#10B981]" />
-                          {room.listeningCount} Listening
-                        </span>
-                        <span>
-                          {room.totalVotes} Votes Cast
-                        </span>
-                      </div>
-
-                      {room.topVotedTrack && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-[#10B981]/5 border-t border-[#10B981]/10 px-5 py-1.5 text-[9px] text-[#A1A1AA] truncate">
-                          Up Next: <span className="font-semibold text-white">{room.topVotedTrack}</span>
+                      {/* Bottom metadata and Up Next container */}
+                      <div className="mt-5 space-y-3.5">
+                        {/* Bottom Row metadata */}
+                        <div className="border-t border-[#27272A]/60 pt-3 flex justify-between items-center text-[10px] font-semibold text-[#A1A1AA]">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-[#10B981]" />
+                            {room.listeningCount} Listening
+                          </span>
+                          <span>
+                            {room.totalVotes} Votes Cast
+                          </span>
                         </div>
-                      )}
+
+                        {room.topVotedTrack && (
+                          <div className="bg-[#10B981]/5 border border-[#10B981]/15 px-3 py-1.5 rounded-xl text-[9px] text-[#A1A1AA] truncate flex items-center gap-1.5">
+                            <span className="text-[8px] font-bold text-[#10B981] uppercase shrink-0">Up Next:</span>
+                            <span className="font-semibold text-white truncate">{room.topVotedTrack}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 );
@@ -470,7 +474,7 @@ export default function Home() {
       </section>
 
       {/* ── LIVE ACTIVITY FEED (100% Real events) ────── */}
-      <section className="py-20 px-6 border-t border-[#27272A]/40 bg-[#121212]/20">
+      <section className="py-12 md:py-20 px-4 md:px-6 border-t border-[#27272A]/40 bg-[#121212]/20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center space-y-2 mb-12">
             <div className="inline-flex items-center gap-1 text-[#10B981]">
@@ -529,7 +533,7 @@ export default function Home() {
       </section>
 
       {/* ── PRODUCT SHOWCASE ─────────────────────────── */}
-      <section className="py-20 px-6 border-t border-[#27272A]/40">
+      <section className="py-12 md:py-20 px-4 md:px-6 border-t border-[#27272A]/40">
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-2 mb-16">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">Core Platform</span>
@@ -579,7 +583,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA SECTION ──────────────────────────────── */}
-      <section className="py-28 px-6 border-t border-[#27272A]/40 text-center relative overflow-hidden">
+      <section className="py-16 md:py-28 px-4 md:px-6 border-t border-[#27272A]/40 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[#10B981]/2 rounded-full blur-[140px] pointer-events-none" />
         <div className="max-w-xl mx-auto space-y-6 relative z-10">
           <Circle className="w-10 h-10 text-[#10B981] fill-[#10B981]/15 mx-auto" strokeWidth={2.5} />
