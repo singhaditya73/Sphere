@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'SPHERE',
     short_name: 'Sphere',
     description: 'Live Collaborative Music & Video Rooms',
-    start_url: '/dashboard',
+    start_url: '/',
     display: 'standalone',
     background_color: '#090909',
     theme_color: '#090909',
