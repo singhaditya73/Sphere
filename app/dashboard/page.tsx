@@ -3,13 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Appbar } from "@/components/Appbar";
-import { Music, Loader2, Plus, ArrowRight, Disc } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { Loader2, Plus, Disc, Radio, Users, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Room {
   id: string;
@@ -36,7 +32,6 @@ export default function DashboardPage() {
 
     if (status === "authenticated") {
       fetchRooms();
-      // Poll for room updates every 10 seconds
       const interval = setInterval(fetchRooms, 10000);
       return () => clearInterval(interval);
     }
@@ -47,7 +42,7 @@ export default function DashboardPage() {
       const response = await fetch("/api/rooms");
       const data = await response.json();
       if (response.ok) {
-        setRooms(data.rooms);
+        setRooms(data.rooms || []);
       }
     } catch (error) {
       console.error("Error fetching rooms:", error);
@@ -62,224 +57,178 @@ export default function DashboardPage() {
 
     setCreatingRoom(true);
     try {
-      console.log("=== CREATING ROOM ===");
-      console.log("Room name:", newRoomName);
-      
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newRoomName }),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response OK:", response.ok);
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
-      
-      // Get raw text first
       const text = await response.text();
-      console.log("Raw response text:", text);
-      
-      // Try to parse JSON
       let data;
       try {
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error("JSON parse error:", parseError);
-        alert("Server returned invalid JSON: " + text);
+        alert("Server returned invalid response.");
         return;
       }
-      
-      console.log("Parsed response data:", data);
 
       if (response.ok) {
-        console.log("Room created successfully, redirecting...");
         setNewRoomName("");
         setShowCreateForm(false);
         router.push(`/room/${data.room.id}`);
       } else {
-        console.error("Create room failed:", data);
-        alert(data.message || data.error || "Failed to create room. Status: " + response.status);
+        alert(data.message || data.error || "Failed to create room.");
       }
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Failed to create room: " + String(error));
+      alert("Failed to create room.");
     } finally {
       setCreatingRoom(false);
     }
   };
 
-  const handleJoinRoom = (roomId: string) => {
-    router.push(`/room/${roomId}`);
-  };
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  }
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  }
-
   if (status === "loading" || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-[#090909]">
+        <Loader2 className="h-5 w-5 animate-spin text-[#10B981]" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-black">
+    <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-24">
       <Appbar />
 
-      <main className="container flex-1 py-32 relative">
-        <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-border pb-8 relative overflow-hidden p-8 bg-card border-l-4">
-          {/* Header Texture */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
-          
-          <div className="relative z-10">
-             <div className="inline-block bg-primary text-primary-foreground font-bold font-mono px-2 py-1 mb-2 transform -rotate-1 shadow-sm">
-                G-7200 SYSTEM
-             </div>
-             <h1 className="text-5xl md:text-7xl font-heading font-black text-foreground uppercase tracking-tighter leading-none">
-                Tape <span className="text-primary">Deck</span>
-             </h1>
+      <main className="container max-w-5xl mx-auto flex-1 py-28 px-6">
+        {/* Header Section */}
+        <div className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-6 border-b border-[#27272A]">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#10B981]">Overview</span>
+            <h1 className="text-2xl md:text-3xl font-heading font-black tracking-tight mt-1">
+              My Channels
+            </h1>
           </div>
-          <div className="relative z-10 flex items-center gap-2 font-mono text-xs text-muted-foreground bg-background/50 px-3 py-1 rounded-full border border-border/50">
-             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-             SYSTEM ONLINE
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#A1A1AA] bg-[#121212] px-3.5 py-1.5 rounded-full border border-[#27272A]">
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+             Live Sync Active
           </div>
         </div>
 
-        {/* Create New Room Button/Card */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 mb-24"
-        >
-            <Card className="p-8 border-4 border-primary bg-secondary/30 relative overflow-hidden group hover:border-primary/80 transition-theme shadow-[8px_8px_0_0_#93a079] hover:shadow-[4px_4px_0_0_#93a079] hover:translate-x-1 hover:translate-y-1">
-                {/* Master Tape Texture */}
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-10 pointer-events-none mix-blend-multiply dark:mix-blend-normal dark:invert"></div>
-                
-                <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                    <div>
-                        <div className="flex justify-between items-start mb-4">
-                            <h2 className="text-3xl font-heading font-black text-foreground uppercase tracking-tight">Master Tape</h2>
-                            <Disc className="w-8 h-8 text-primary animate-spin-slow" />
-                         </div>
-                        <p className="font-mono text-muted-foreground">Initialize a new broadcast frequency.</p>
-                    </div>
-                
-                {!showCreateForm ? (
-                  <Button onClick={() => setShowCreateForm(true)} className="mechanical-btn primary h-14 px-8 text-lg text-black">
-                    <Plus className="mr-2 h-5 w-5" />
-                    Insert Tape
-                  </Button>
-                ) : (
-                  <form onSubmit={handleCreateRoom} className="flex flex-col sm:flex-row gap-4 w-full max-w-lg z-10">
-                    <div className="flex-1 rounded-sm border-2 border-border bg-background">
-                        <Input
-                          placeholder="LABEL TAPE..."
-                          value={newRoomName}
-                          onChange={(e) => setNewRoomName(e.target.value)}
-                          disabled={creatingRoom}
-                          autoFocus
-                          className="bg-transparent border-0 text-foreground font-mono text-lg h-12 placeholder:text-muted-foreground focus-visible:ring-0 uppercase"
-                        />
-                    </div>
-                    <Button type="submit" disabled={creatingRoom || !newRoomName.trim()} className="mechanical-btn primary h-auto px-6">
-                      {creatingRoom ? <Loader2 className="animate-spin" /> : "PRODUCE"}
-                    </Button>
-                    <Button
+        {/* Create Room form */}
+        <div className="mb-10">
+          <AnimatePresence mode="wait">
+            {!showCreateForm ? (
+              <motion.div
+                key="trigger"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <button 
+                  onClick={() => setShowCreateForm(true)} 
+                  className="rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white transition-all h-10 px-6 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer active:scale-97"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Listening Room
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="form"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="max-w-md bg-[#121212] border border-[#27272A] rounded-2xl p-5"
+              >
+                <form onSubmit={handleCreateRoom} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider mb-2">
+                      Room Title
+                    </label>
+                    <input
+                      placeholder="e.g. Afternoon Lo-Fi Beats..."
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      disabled={creatingRoom}
+                      autoFocus
+                      className="w-full bg-[#090909] border border-[#27272A] text-white text-xs h-10 px-3.5 rounded-xl placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      type="submit" 
+                      disabled={creatingRoom || !newRoomName.trim()} 
+                      className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-9 text-xs font-bold px-4 rounded-xl flex-1 transition-colors cursor-pointer"
+                    >
+                      {creatingRoom ? <Loader2 className="animate-spin h-3.5 w-3.5 mx-auto" /> : "Create"}
+                    </button>
+                    <button
                       type="button"
                       onClick={() => {
                         setShowCreateForm(false);
                         setNewRoomName("");
                       }}
-                       className="mechanical-btn h-auto px-4 bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                      className="border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] h-9 text-xs font-bold px-4 rounded-xl transition-colors cursor-pointer"
                     >
-                      X
-                    </Button>
-                  </form>
-                )}
-                </div>
-            </Card>
-        </motion.div>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-        {/* Active Rooms */}
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-8">
-             <h2 className="font-mono text-sm text-muted-foreground font-bold uppercase tracking-widest border-b border-primary/20 pb-1">Tape Collection // {rooms.length}</h2>
+        {/* Channels List */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#A1A1AA]">
+              Active Queues ({rooms.length})
+            </h2>
           </div>
           
           {rooms.length === 0 ? (
-            <div className="border-4 border-border border-dashed p-12 flex flex-col items-center justify-center text-center bg-card/50 rounded-xl">
-              <Music className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground font-mono uppercase">Shelf Empty</p>
+            <div className="border border-dashed border-[#27272A] rounded-2xl p-12 flex flex-col items-center justify-center text-center bg-[#121212]/30">
+              <Radio className="mb-4 h-8 w-8 text-[#A1A1AA]/40" />
+              <p className="text-sm text-[#A1A1AA] font-bold">No active sessions</p>
+              <p className="text-xs text-[#71717A] mt-1">Create a room above to start broadcasting</p>
             </div>
           ) : (
-            <motion.div 
-              variants={container}
-              initial="hidden"
-              animate="show"
-              className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
-            >
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
-                <motion.div
+                <div
                   key={room.id}
-                  variants={item}
-                  className="cassette-shell relative p-3 cursor-pointer hover:-translate-y-2 transition-transform duration-300 group"
-                  onClick={() => handleJoinRoom(room.id)}
+                  onClick={() => router.push(`/room/${room.id}`)}
+                  className="premium-card p-5 cursor-pointer flex flex-col justify-between h-40 group"
                 >
-                   {/* Cassette Label Area */}
-                   <div className="cassette-label h-32 w-full mb-3 relative p-4 flex flex-col justify-between overflow-hidden">
-                       <div className="absolute top-2 left-2 w-full h-[1px] bg-black/10"></div>
-                       <div className="absolute top-4 left-2 w-full h-[1px] bg-black/10"></div>
-                       
-                       <div className="relative z-10">
-                          <h3 className="font-bold text-xl text-black font-handwriting transform -rotate-1 truncate" style={{ fontFamily: 'sans-serif' }}>{room.name}</h3>
-                          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter truncate">Mixtape by {room.hostEmail.split('@')[0]}</p>
-                       </div>
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-heading font-black text-base text-[#FAFAFA] truncate group-hover:text-[#10B981] transition-colors">
+                        {room.name}
+                      </h3>
+                      <p className="text-xs text-[#A1A1AA] truncate mt-1">
+                        Hosted by {room.hostEmail?.split('@')[0] || "Host"}
+                      </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center shrink-0">
+                      <Disc className="w-4 h-4 text-[#10B981] spin-slow group-hover:scale-110 transition-transform" />
+                    </div>
+                  </div>
 
-                       {/* Tape Window */}
-                       <div className="bg-muted w-3/4 mx-auto h-8 rounded-full flex items-center justify-center gap-4 relative shadow-inner">
-                          <div className="w-6 h-6 rounded-full bg-card border-2 border-border flex items-center justify-center">
-                             <div className="w-1 h-1 bg-black rounded-full"></div>
-                          </div>
-                          <div className="w-12 h-2 bg-black/50 rounded-full"></div>
-                          <div className="w-6 h-6 rounded-full bg-card border-2 border-border flex items-center justify-center">
-                             <div className="w-1 h-1 bg-black rounded-full"></div>
-                          </div>
-                       </div>
-                   </div>
-
-                   {/* Cassette Bottom (Screws & Info) */}
-                   <div className="flex items-center justify-between px-2">
-                      <div className="screw-head"></div>
-                      <div className="flex flex-col items-center">
-                         <span className="text-[8px] text-muted-foreground font-mono uppercase">Type I / Normal</span>
-                         <span className="text-xs font-bold text-foreground">{room.streamCount} tracks</span>
-                      </div>
-                      <div className="screw-head"></div>
-                   </div>
-                   
-                   {/* Play Button Overlay */}
-                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg backdrop-blur-sm">
-                       <div className="bg-primary text-black px-6 py-2 font-bold font-mono uppercase rounded-full shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                          ▶ Play
-                       </div>
-                   </div>
-                </motion.div>
+                  <div className="flex items-center justify-between pt-4 border-t border-[#27272A] mt-auto">
+                    <span className="text-xs font-semibold text-[#A1A1AA] flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-[#10B981]" />
+                      {room.streamCount} {room.streamCount === 1 ? 'track' : 'tracks'} queued
+                    </span>
+                    <div className="text-[#A1A1AA] group-hover:text-[#10B981] transition-colors flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Listen</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       </main>

@@ -71,7 +71,7 @@ export default function TermsOfServicePage() {
                     1. Introduction
                   </h2>
                   <p>
-                    Welcome to BeatNet, a decentralized music platform that
+                    Welcome to Sphere, a decentralized music platform that
                     allows users to vote on songs to be queued and played based
                     on community preferences. These Terms of Service
                     (&quot;Terms&quot;) govern your use of our website, apps,
@@ -90,7 +90,7 @@ export default function TermsOfServicePage() {
                   </h2>
                   <ul className="list-disc pl-6 space-y-1">
                     <li>
-                      <strong>Platform</strong>: The BeatNet decentralized music
+                      <strong>Platform</strong>: The Sphere decentralized music
                       application and website.
                     </li>
                     <li>
@@ -223,7 +223,7 @@ export default function TermsOfServicePage() {
                     </h3>
                     <p>
                       The Service and its original content, features, and
-                      functionality are owned by BeatNet and are protected by
+                      functionality are owned by Sphere and are protected by
                       international copyright, trademark, patent, trade secret,
                       and other intellectual property laws.
                     </p>
@@ -293,7 +293,7 @@ export default function TermsOfServicePage() {
                     9. Limitation of Liability
                   </h2>
                   <p>
-                    In no event shall BeatNet, its directors, employees,
+                    In no event shall Sphere, its directors, employees,
                     partners, agents, suppliers, or affiliates be liable for any
                     indirect, incidental, special, consequential, or punitive
                     damages, including without limitation, loss of profits,

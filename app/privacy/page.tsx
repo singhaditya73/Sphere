@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
                 <section className="mb-8">
                   <h2 className="text-2xl font-semibold text-primary mb-3">1. Introduction</h2>
                   <p>
-                    Welcome to BeatNet (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). This Privacy Policy explains how we collect, use, disclose, 
+                    Welcome to Sphere (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). This Privacy Policy explains how we collect, use, disclose, 
                     and safeguard your information when you use our decentralized music platform.
                   </p>
                   <p>

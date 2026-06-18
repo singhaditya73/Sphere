@@ -21,12 +21,11 @@ export function MegaFooter() {
             <Link href="/" className="flex items-center gap-3 w-fit group">
                <div className="relative">
                  <Circle className="w-8 h-8 text-primary fill-primary/20 group-hover:scale-110 transition-transform" />
-                 <div className="absolute inset-0 bg-primary/40 blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                </div>
                <span className="font-heading font-black text-2xl tracking-tighter">sphere</span>
             </Link>
             <p className="text-muted-foreground max-w-sm leading-relaxed text-sm">
-              The future of social styling. Connect, listen, and vibe together in real-time. 
+              Shared listening, democratic queues. Everyone votes, everyone hears. 
             </p>
             <div className="flex gap-4 mt-1">
                {[Twitter, Github, Linkedin].map((Icon, i) => (
@@ -73,9 +72,9 @@ export function MegaFooter() {
               SPHERE
            </h1>
            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-8 text-sm text-muted-foreground">
-              <p>© {currentYear} Sphere Inc. All rights reserved.</p>
+              <p>© {currentYear} Sphere. All rights reserved.</p>
               <div className="flex items-center gap-8">
-                 <span>Designed by BeatNet</span>
+                 <span>Designed by Sphere</span>
                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
                  <span>Built in Next.js</span>
               </div>

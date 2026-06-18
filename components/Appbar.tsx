@@ -1,18 +1,9 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import React from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Button } from "./ui/button";
-import { ArrowRight, Circle } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Circle, LogOut, LayoutGrid } from "lucide-react";
 
 interface AppbarProps {
   className?: string;
@@ -20,76 +11,90 @@ interface AppbarProps {
 
 export function Appbar({ className = "" }: AppbarProps) {
   const session = useSession();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const user = session.data?.user;
+  const initials = user?.name?.charAt(0).toUpperCase() ?? "U";
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none ${className}`}>
-      <header className="pointer-events-auto w-full max-w-5xl rounded-full border border-border/40 bg-background/80 backdrop-blur-xl shadow-2xl shadow-primary/10 flex items-center justify-between pl-6 pr-2 py-2 transition-all duration-300 hover:border-primary/30 hover:shadow-primary/20 glow-green/0 hover:glow-green">
-        
-        {/* LOGO */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="relative">
-               <Circle className="h-8 w-8 text-primary fill-primary/20 transition-all group-hover:fill-primary/40 group-hover:scale-110" strokeWidth={2} />
-               <div className="absolute inset-0 rounded-full bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
-            <span className="inline-block font-heading font-black text-2xl tracking-tight transition-colors group-hover:text-primary text-glow-green/0 group-hover:text-glow-green">
+    <div className={`fixed top-0 left-0 right-0 z-50 flex justify-center pt-5 px-4 pointer-events-none ${className}`}>
+      <header className="pointer-events-auto w-full max-w-5xl rounded-full border border-[#27272A] bg-[#121212]/80 backdrop-blur-md flex items-center justify-between pl-5 pr-2 py-2 shadow-lg">
+
+        {/* Logo */}
+        <div className="flex items-center gap-5">
+          <Link href="/" className="flex items-center gap-2 group">
+            <Circle
+              className="h-4.5 w-4.5 text-[#10B981] fill-[#10B981]/15 group-hover:fill-[#10B981]/25 transition-all"
+              strokeWidth={2.5}
+            />
+            <span className="font-heading font-black text-lg tracking-tight text-[#FAFAFA] group-hover:text-[#10B981] transition-colors">
               sphere
             </span>
           </Link>
-          
-          {/* DESKTOP NAV */}
-          <nav className="hidden gap-1 md:flex items-center ml-6">
-            {["Features", "Experience", "Community"].map((item) => (
-               <Link
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-                className="px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all hover:bg-primary/10 rounded-full"
+
+          {user && (
+            <nav className="hidden md:flex items-center">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#A1A1AA] hover:text-[#FAFAFA] transition-colors rounded-full hover:bg-[#18181B]"
               >
-                {item}
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Dashboard
               </Link>
-            ))}
-          </nav>
+            </nav>
+          )}
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex items-center space-x-3">
-          {session.data?.user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full border-2 border-primary/20 hover:border-primary transition-colors focus:ring-0 p-0 overflow-hidden group">
-                  <Avatar className="h-full w-full">
-                    <AvatarImage src={session.data.user.image || ""} alt={session.data.user.name || "User"} className="group-hover:scale-110 transition-transform duration-500" />
-                    <AvatarFallback className="bg-muted text-primary font-mono font-bold">
-                      {session.data.user.name?.charAt(0).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-card/95 backdrop-blur-md border-border text-foreground shadow-2xl rounded-xl mt-2" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal border-b border-border pb-3">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-black leading-none text-foreground font-heading tracking-wide uppercase">{session.data.user.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground font-mono truncate opacity-70">
-                      {session.data.user.email}
-                    </p>
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          {user ? (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setOpen(v => !v)}
+                className="h-9 w-9 rounded-full border border-[#27272A] hover:border-[#10B981]/50 overflow-hidden transition-colors focus:outline-none cursor-pointer"
+              >
+                {user.image ? (
+                  <img src={user.image} alt={user.name ?? "User"} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[#18181B] flex items-center justify-center text-xs font-bold text-[#10B981]">
+                    {initials}
                   </div>
-                </DropdownMenuLabel>
-                <div className="p-1">
-                  <DropdownMenuItem 
-                    className="cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted focus:text-foreground font-mono uppercase text-xs tracking-wider rounded-lg py-2"
-                    onClick={() => signOut()}
+                )}
+              </button>
+
+              {open && (
+                <div className="absolute right-0 mt-2 w-52 bg-[#121212] border border-[#27272A] rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-[#27272A]/60">
+                    <p className="text-xs font-bold text-[#FAFAFA] truncate">{user.name}</p>
+                    <p className="text-[10px] text-[#A1A1AA] truncate mt-0.5">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setOpen(false); signOut(); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] transition-colors text-left cursor-pointer"
                   >
-                    <ArrowRight className="mr-2 h-3 w-3" />
-                    Disconnect
-                  </DropdownMenuItem>
+                    <LogOut className="h-3.5 w-3.5" />
+                    Sign out
+                  </button>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
           ) : (
-            <Link href="/login">
-              <Button size="sm" className="rounded-full px-6 font-bold tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
-                Sign In
-              </Button>
+            <Link
+              href="/login"
+              className="rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white transition-colors text-xs font-bold px-5 py-2"
+            >
+              Sign In
             </Link>
           )}
         </div>

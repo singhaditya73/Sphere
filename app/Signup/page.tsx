@@ -59,7 +59,7 @@ export default function SignupPage() {
               </div>
 
               <div className="text-center mb-8">
-                <h1 className="text-3xl font-heading font-black uppercase text-foreground tracking-tighter mb-2">BeatNet<span className="text-primary"> // New User</span></h1>
+                <h1 className="text-3xl font-heading font-black uppercase text-foreground tracking-tighter mb-2">Sphere<span className="text-primary"> // New User</span></h1>
                 <p className="font-mono text-xs text-muted-foreground uppercase tracking-[0.2em]">Register KeyCard</p>
               </div>
 

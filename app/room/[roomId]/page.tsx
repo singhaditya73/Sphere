@@ -3,10 +3,10 @@
 import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-import { Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send, Search, X, QrCode, Copy, Check, MessageCircle } from "lucide-react";
+import { 
+  Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send, 
+  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 
@@ -56,7 +56,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const { data: session } = useSession();
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
-  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addingStream, setAddingStream] = useState(false);
   const [newStreamUrl, setNewStreamUrl] = useState("");
@@ -70,11 +69,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [loadingNext, setLoadingNext] = useState(false);
   const playerRef = useRef<any>(null);
 
-  // Chat state
+  // Chat & social activity log feed
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Search state
@@ -84,9 +82,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [showSearch, setShowSearch] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // QR / Share modal state
+  // Share state
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [isApiReady, setIsApiReady] = useState(false);
 
   const updateVolume = (newVolume: number) => {
     setVolume(newVolume);
@@ -95,17 +94,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
   };
 
-  const updatePlaybackRate = (rate: number) => {
-    setPlaybackRate(rate);
-    if (playerRef.current && playerRef.current.setPlaybackRate) {
-        playerRef.current.setPlaybackRate(rate);
-    }
-  };
-
-  const [isApiReady, setIsApiReady] = useState(false);
-
   useEffect(() => {
-    // Load YouTube IFrame API
     if (!(window as any).YT) {
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
@@ -113,7 +102,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
         
         (window as any).onYouTubeIframeAPIReady = () => {
-             console.log("YouTube API Ready");
              setIsApiReady(true);
         };
     } else {
@@ -123,14 +111,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   useEffect(() => {
     if (isApiReady && room?.currentStream?.type === 'Youtube' && room.currentStream.extractedId) {
-        // If player already exists, load the new video instead of destroying
         if (playerRef.current) {
             try {
-              // Check if still playing the same video
               if (playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
                 return;
               }
-              // Load new video into existing player
               playerRef.current.loadVideoById(room.currentStream.extractedId);
               playerRef.current.setVolume(volume);
               setIsPlaying(true);
@@ -138,13 +123,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               setDuration(0);
               return;
             } catch (e) {
-              // Player is in a bad state, recreate it
-              console.log("Player in bad state, recreating...");
               playerRef.current = null;
             }
         }
 
-        // Make sure the target div exists
         const targetEl = document.getElementById('youtube-player');
         if (!targetEl) return;
 
@@ -154,15 +136,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             videoId: room.currentStream.extractedId,
             playerVars: {
                 'autoplay': 1,
-                'controls': 1,
+                'controls': 0,
                 'modestbranding': 1,
                 'enablejsapi': 1,
                 'rel': 0,
-                'origin': window.location.origin
+                'origin': typeof window !== 'undefined' ? window.location.origin : ''
             },
             events: {
                 'onReady': (event: any) => {
-                    console.log("Player Ready");
                     event.target.playVideo();
                     event.target.setVolume(volume);
                     event.target.setPlaybackRate(playbackRate);
@@ -179,13 +160,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
   }, [isApiReady, room?.currentStream?.extractedId]);
 
-  // Progress Poller
   useEffect(() => {
      const timer = setInterval(() => {
         if (playerRef.current && playerRef.current.getCurrentTime) {
             const time = playerRef.current.getCurrentTime();
-            // Allow manual seek override locally by checking difference? 
-            // For now simple sync
             setProgress(time);
             if (!duration) setDuration(playerRef.current.getDuration());
         }
@@ -199,9 +177,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       const data = await response.json();
       if (response.ok) {
         setRoom(data.room);
+        localStorage.setItem("sphere_active_room_id", roomId);
       }
     } catch (error) {
-      console.error("Error fetching room:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -215,20 +194,19 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         setMyUpvotedStreamIds(new Set(data.upvotedStreamIds));
       }
     } catch (error) {
-      console.error("Error fetching upvotes:", error);
+      console.error(error);
     }
   };
 
-  // Chat functions
   const fetchMessages = async () => {
     try {
       const response = await fetch(`/api/rooms/${roomId}/messages`);
       const data = await response.json();
       if (response.ok) {
-        setMessages(data.messages);
+        setMessages(data.messages || []);
       }
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      console.error(error);
     }
   };
 
@@ -248,13 +226,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error(error);
     } finally {
       setSendingMessage(false);
     }
   };
 
-  // Search functions
   const handleSearch = useCallback(async (query: string) => {
     if (query.trim().length < 2) {
       setSearchResults([]);
@@ -268,7 +245,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         setSearchResults(data.results || []);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.error(error);
     } finally {
       setSearching(false);
     }
@@ -296,7 +273,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     fetchRoomData();
     fetchMyUpvotes();
     fetchMessages();
-    // Poll for updates every 2 seconds for near real-time feel
+
     const interval = setInterval(() => {
       fetchRoomData();
       fetchMyUpvotes();
@@ -305,12 +282,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     return () => clearInterval(interval);
   }, [session, roomId]);
 
-  // Auto-scroll chat when new messages arrive
   useEffect(() => {
-    if (showChat) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, showChat]);
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleAddStream = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,12 +292,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
     setAddingStream(true);
     try {
-      // Get user ID
       const userResponse = await fetch(`/api/user`);
       const userData = await userResponse.json();
       
       if (!userResponse.ok || !userData.user) {
-        alert("Failed to get user information");
+        alert("Failed to get user info");
         return;
       }
       
@@ -342,11 +315,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         fetchRoomData();
       } else {
         const error = await response.json();
-        alert(error.message || "Failed to add stream");
+        alert(error.message || "Failed to add track");
       }
     } catch (error) {
-      console.error("Error adding stream:", error);
-      alert("Failed to add stream");
+      console.error(error);
     } finally {
       setAddingStream(false);
     }
@@ -355,7 +327,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const handleUpvote = async (streamId: string, hasUpvoted: boolean) => {
     setUpvotingIds((prev) => new Set(prev).add(streamId));
     
-    // Optimistic UI update — instantly reflect the vote change
     setMyUpvotedStreamIds((prev) => {
       const newSet = new Set(prev);
       if (hasUpvoted) newSet.delete(streamId);
@@ -387,10 +358,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         fetchMyUpvotes();
       }
     } catch (error) {
-      console.error("Error voting:", error);
-      // Revert optimistic update on error
-      fetchRoomData();
-      fetchMyUpvotes();
+      console.error(error);
     } finally {
       setUpvotingIds((prev) => {
         const newSet = new Set(prev);
@@ -401,16 +369,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   };
 
   const handlePlayNext = async () => {
-    if (loadingNext) return; // Prevent double-clicks
+    if (loadingNext) return;
     try {
       setLoadingNext(true);
       setIsPlaying(false);
-      
-      // Destroy current player before loading next
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
       
       const response = await fetch(`/api/rooms/${roomId}/next`, {
         method: "POST",
@@ -422,7 +384,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         await fetchRoomData();
       }
     } catch (error) {
-      console.error("Error playing next:", error);
+      console.error(error);
     } finally {
       setLoadingNext(false);
     }
@@ -430,434 +392,420 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-[#090909]">
+        <Loader2 className="h-5 w-5 animate-spin text-[#10B981]" />
       </div>
     );
   }
 
   if (!room) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold">Room not found</h1>
-        <Button className="mt-4 btn-neon" onClick={() => router.push("/dashboard")}>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#090909] p-6 text-center">
+        <h1 className="text-lg font-heading font-black">Room not found</h1>
+        <button 
+          className="mt-4 px-5 py-2 rounded-full bg-[#10B981] text-white text-xs font-semibold cursor-pointer" 
+          onClick={() => router.push("/dashboard")}
+        >
           Back to Dashboard
-        </Button>
+        </button>
       </div>
     );
   }
 
   const isHost = session?.user?.email === room.host.email;
 
+  // Synthesize active listening presence array
+  const listenerEmails = Array.from(new Set([
+    room.host.email,
+    ...room.queue.map(s => s.addedBy),
+    ...messages.map(m => m.userEmail)
+  ])).filter(Boolean);
+
+  // Integrate system events directly in the chat feed
+  const combinedLog: Array<
+    | { type: "msg"; id: string; user: string; text: string; time: string }
+    | { type: "event"; id: string; user: string; text: string; time: string; isHighlight?: boolean }
+  > = [
+    ...messages.map(m => ({
+      type: "msg" as const,
+      id: m.id,
+      user: m.userEmail?.split('@')[0] || "User",
+      text: m.text,
+      time: m.createdAt
+    })),
+    ...room.queue.map(q => {
+      // Find out if it has higher votes to trigger amber highlight
+      const isHighlight = q.upvotes >= 5;
+      return {
+        type: "event" as const,
+        id: `add-${q.id}`,
+        user: q.addedBy?.split('@')[0] || "Someone",
+        text: `added track "${q.title.substring(0, 30)}..."`,
+        time: q.createdAt,
+        isHighlight
+      };
+    })
+  ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+  // Dynamic colors placeholder logic - background artwork blur
+  const currentArtworkUrl = room.currentStream?.bigImg || room.currentStream?.smallImg || `https://img.youtube.com/vi/${room.currentStream?.extractedId}/maxresdefault.jpg`;
+
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-36">
       <Appbar />
  
-      <main className="container flex-1 py-32 px-6 relative max-w-7xl mx-auto">
-        {/* Room Header */}
-        <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-8 border-b border-border/50">
-          <div className="space-y-4">
-             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-sm font-medium text-primary">
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                Live Session
-             </div>
-             <h1 className="text-4xl md:text-6xl font-heading font-black tracking-tight">{room.name}</h1>
-             <div className="flex items-center gap-4 flex-wrap">
-                 <p className="text-sm text-muted-foreground">
-                   Hosted by <span className="text-foreground font-medium">{room.host.email.split('@')[0]}</span>
-                 </p>
-                 {room.code && (
-                   <>
-                     <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-mono">{room.code}</span>
-                     <button 
-                       onClick={() => {
-                           navigator.clipboard.writeText(room.code);
-                           setCopied(true);
-                           setTimeout(() => setCopied(false), 2000);
-                       }}
-                       className="px-3 py-1 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground text-xs transition-colors"
-                     >
-                       {copied ? "Copied!" : "Copy Code"}
-                     </button>
-                   </>
-                 )}
-                 <button 
-                   onClick={() => setShowShareModal(true)}
-                   className="px-3 py-1 rounded-full bg-secondary/20 hover:bg-secondary/30 text-secondary text-xs transition-colors flex items-center gap-1"
-                 >
-                   <QrCode className="w-3 h-3" /> Share
-                 </button>
-             </div>
-          </div>
-          <Button onClick={() => router.push("/dashboard")} variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-full px-6">
-            Leave Session
-          </Button>
-        </div>
- 
-        {/* PLAYER */}
-        <div className="mb-12 relative z-10">
-           {/* Modern Glass Player Container */}
-           <div className="glass-card p-1 shadow-2xl overflow-hidden">
-             <div className="bg-card/50 p-6 md:p-8 rounded-2xl relative overflow-hidden">
-               {/* Glass overlay */}
-               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none"></div>
-               
-               <div className="flex items-center justify-between mb-6 px-2">
-                  <span className="font-heading text-xl text-muted-foreground font-bold">sphere <span className="text-primary">player</span></span>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                     <span className="px-2 py-1 rounded bg-muted/50">HQ Audio</span>
-                     <span className="px-2 py-1 rounded bg-primary/20 text-primary">Live</span>
-                  </div>
-               </div>
-            
-            {room.currentStream ? (
-              <div className="flex flex-col gap-8 relative z-0">
-                 {/* Video Player Window */}
-                <motion.div 
-                    initial={{ scaleY: 0, opacity: 0 }}
-                    animate={{ scaleY: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, ease: "circOut" }}
-                    className="relative mx-auto w-full max-w-3xl aspect-video bg-black rounded-xl border border-border/50 shadow-2xl shadow-primary/10 overflow-hidden group"
-                >
-                    {/* YouTube Player — Visible */}
-                    {room.currentStream.type === "Youtube" && (
-                      <div id="youtube-player" className="absolute inset-0 w-full h-full z-10" />
-                    )}
-                    
-                    {/* Spotify Embed — Visible */}
-                    {room.currentStream.type === "Spotify" && (
-                      <iframe
-                        src={`https://open.spotify.com/embed/${
-                          room.currentStream.url.includes("playlist")
-                            ? "playlist"
-                            : room.currentStream.url.includes("album")
-                            ? "album"
-                            : "track"
-                        }/${room.currentStream.extractedId}?theme=0`}
-                        className="absolute inset-0 w-full h-full z-10"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                      />
-                    )}
-
-                    {/* Fallback thumbnail while player loads */}
-                    <div className="absolute inset-0 z-0 flex items-center justify-center bg-card">
-                       <img
-                          src={room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`}
-                          alt="Album Art"
-                          className="w-full h-full object-cover opacity-40 blur-sm"
-                       />
-                       <div className="absolute inset-0 flex items-center justify-center">
-                          <Music className="w-16 h-16 text-muted-foreground/30" />
-                       </div>
-                    </div>
-                    
-                    {/* Loading next track overlay */}
-                    {loadingNext && (
-                      <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-3">
-                          <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                          <span className="text-sm font-mono text-primary">Loading next track...</span>
-                        </div>
-                      </div>
-                    )}
-                </motion.div>
-                
-                {/* Tape Counter / Progress Bar */}
-                 <div className="w-full max-w-3xl mx-auto px-1">
-                    <div 
-                        className="h-8 bg-black/10 dark:bg-zinc-900 border-2 border-border rounded relative group cursor-pointer overflow-hidden"
-                        onClick={(e) => {
-                            if (!playerRef.current || !duration) return;
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const x = e.clientX - rect.left;
-                            const percent = x / rect.width;
-                            const newTime = percent * duration;
-                            playerRef.current.seekTo(newTime, true);
-                            setProgress(newTime);
-                        }}
-                    >
-                        {/* Digital Numbers Background */}
-                        <div className="absolute inset-0 flex items-center justify-between px-2 font-mono text-[10px] text-muted-foreground pointer-events-none select-none">
-                            <span>00:00</span>
-                            <span>{(duration / 60).toFixed(0).padStart(2, '0')}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
-                        </div>
-                        
-                        {/* Progress Fill */}
-                        <div 
-                            className="absolute top-0 left-0 h-full bg-primary/20 border-r-2 border-primary transition-all duration-100 ease-linear"
-                            style={{ width: `${(progress / duration) * 100}%` }}
-                        ></div>
-                        
-                        {/* Counter Text */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="font-mono font-bold text-primary tracking-[0.2em] text-sm">
-                                {Math.floor(progress / 60).toString().padStart(2, '0')}:{Math.floor(progress % 60).toString().padStart(2, '0')}
-                            </span>
-                        </div>
-                    </div>
-                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1 uppercase">
-                        <span>Tape Counter</span>
-                        <span>Memory Stop</span>
-                    </div>
+      <main className="container flex-1 py-24 px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
+        
+        {/* LEFT & CENTER AREAS (Col-span 8) */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          
+          {/* Top Info section & Active Listeners */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#10B981] px-2.5 py-0.5 rounded-full bg-[#10B981]/10 border border-[#10B981]/20">
+                    Live Broadcast
+                  </span>
+                  <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
                 </div>
+                <h1 className="text-2xl font-heading font-black tracking-tight text-white">{room.name}</h1>
+                <p className="text-xs text-[#A1A1AA] mt-1">
+                  Hosted by <span className="text-[#FAFAFA] font-medium">{room.host.email?.split('@')[0] || "Host"}</span>
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowShareModal(true)}
+                  className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5" /> Invite
+                </button>
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem("sphere_active_room_id");
+                    router.push("/dashboard");
+                  }}
+                  className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-red-950/20 text-xs font-bold text-red-400 transition-colors cursor-pointer"
+                >
+                  Leave
+                </button>
+              </div>
+            </div>
+
+            {/* Listener avatars presence row */}
+            <div className="flex items-center gap-3 border-t border-[#27272A]/60 pt-4 flex-wrap">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1AA] flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#10B981]" /> Listening Now ({listenerEmails.length})
+              </span>
+              <div className="flex -space-x-1.5 overflow-hidden">
+                {listenerEmails.map((email) => (
+                  <div 
+                    key={email} 
+                    className="inline-block h-6.5 w-6.5 rounded-full ring-2 ring-[#121212] bg-[#10B981]/20 flex items-center justify-center text-[10px] font-bold text-[#10B981] uppercase"
+                    title={email}
+                  >
+                    {email.charAt(0)}
+                  </div>
+                ))}
+                {listenerEmails.length > 5 && (
+                  <div className="inline-block h-6.5 w-6.5 rounded-full ring-2 ring-[#121212] bg-[#18181B] flex items-center justify-center text-[9px] font-bold text-[#71717A]">
+                    +{listenerEmails.length - 5}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Now Playing Card (Dynamic Artwork Backdrop Blur) */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 relative overflow-hidden flex flex-col gap-6">
+            
+            {/* Dynamic Backdrop Glow derived from current artwork */}
+            {room.currentStream && (
+              <div 
+                className="absolute inset-0 bg-cover bg-center opacity-[0.08] blur-[80px] scale-125 pointer-events-none transition-all duration-1000"
+                style={{ backgroundImage: `url(${currentArtworkUrl})` }}
+              />
+            )}
+
+            {room.currentStream ? (
+              <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
                 
-                <div className="flex flex-col md:flex-row items-end justify-between gap-6 px-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1 inline-block text-xs font-mono mb-2 animate-pulse">
-                       PLAYING: {room.currentStream.type.toUpperCase()}
+                {/* Artwork */}
+                <div className="w-56 h-56 rounded-2xl overflow-hidden bg-black border border-[#27272A] shrink-0 shadow-2xl relative group">
+                  <img
+                    src={currentArtworkUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-0 left-0 w-0 h-0 opacity-0 overflow-hidden pointer-events-none">
+                    <div id="youtube-player" className="w-full h-full" />
+                  </div>
+                </div>
+
+                {/* Track Details & controls */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between h-56 py-1.5 self-stretch w-full">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-[#10B981]">
+                        Now Playing
+                      </span>
+                      {isPlaying && (
+                        <div className="waveform">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                      )}
                     </div>
-                    <h3 className="text-2xl md:text-4xl font-heading font-black text-foreground uppercase leading-none truncate">{room.currentStream.title}</h3>
-                    <div className="flex items-center gap-4 mt-2 font-mono text-muted-foreground text-xs">
-                       <span>▲ {room.currentStream.upvotes} VOTES</span>
-                       <span>// {room.currentStream.extractedId}</span>
+                    <h2 className="text-xl md:text-2xl font-heading font-black text-white mt-3 truncate">
+                      {room.currentStream.title}
+                    </h2>
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      Added by <span className="text-[#FAFAFA] font-medium">{room.currentStream.addedBy?.split('@')[0] || "System"}</span>
+                    </p>
+                  </div>
+
+                  {/* Playback Progress */}
+                  <div className="space-y-1.5">
+                    <div 
+                      className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
+                      onClick={(e) => {
+                        if (!playerRef.current || !duration) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const percent = x / rect.width;
+                        const newTime = percent * duration;
+                        playerRef.current.seekTo(newTime, true);
+                        setProgress(newTime);
+                      }}
+                    >
+                      <div 
+                        className="absolute top-0 left-0 h-full bg-[#10B981] rounded-full"
+                        style={{ width: `${(progress / duration) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-full flex justify-between text-[9px] font-mono text-[#A1A1AA] uppercase tracking-widest">
+                      <span>{Math.floor(progress / 60).toString().padStart(2, '0')}:{Math.floor(progress % 60).toString().padStart(2, '0')}</span>
+                      <span>{(duration / 60).toFixed(0).padStart(2, '0')}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
                     </div>
                   </div>
-                  
-                  <div className="flex gap-3">
-                      <Button 
-                          onClick={() => {
-                              if (playerRef.current) {
-                                  if (isPlaying) playerRef.current.pauseVideo();
-                                  else playerRef.current.playVideo();
-                                  setIsPlaying(!isPlaying);
-                              }
-                          }}
-                          className="bg-muted hover:bg-muted/80 text-foreground h-14 w-14 rounded-full flex items-center justify-center border border-border"
+
+                  {/* Playback Controls & Skip */}
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => {
+                        if (playerRef.current) {
+                            if (isPlaying) playerRef.current.pauseVideo();
+                            else playerRef.current.playVideo();
+                            setIsPlaying(!isPlaying);
+                        }
+                      }}
+                      className="bg-[#090909] border border-[#27272A] hover:border-[#10B981]/50 text-white h-11 w-11 rounded-full flex items-center justify-center transition-colors cursor-pointer active:scale-95 duration-100"
+                    >
+                      {isPlaying ? <Pause className="h-4 w-4 text-[#10B981]" /> : <Play className="h-4 w-4 ml-0.5 text-[#10B981]" />}
+                    </button>
+                    {isHost && (
+                      <button 
+                        onClick={handlePlayNext} 
+                        disabled={loadingNext} 
+                        className="bg-[#121212] hover:bg-[#18181B] border border-[#27272A] hover:border-[#10B981]/50 text-white h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
                       >
-                          {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
-                      </Button>
-                      {isHost && (
-                        <Button onClick={handlePlayNext} disabled={loadingNext} className="btn-neon h-14 w-14 rounded-full flex items-center justify-center">
-                            {loadingNext ? <Loader2 className="h-5 w-5 animate-spin" /> : <SkipForward className="h-5 w-5" />}
-                        </Button>
-                      )}
+                        {loadingNext ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground glass-card">
-                <Loader2 className="mb-4 h-16 w-16 opacity-20" />
-                <p className="text-xl font-medium">No Track Playing</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center text-[#A1A1AA] relative z-10">
+                <Music className="w-10 h-10 opacity-35 mb-3" />
+                <p className="text-sm font-semibold text-white">No active track playing</p>
+                <p className="text-xs text-[#71717A] mt-1 max-w-xs">Drop a YouTube link below or search for tracks to start the session.</p>
                 {isHost && room.queue.length > 0 && (
-                  <Button onClick={handlePlayNext} className="mt-6 btn-neon px-8">
-                    Play Next Track
-                  </Button>
+                  <button 
+                    onClick={handlePlayNext} 
+                    className="mt-6 px-6 py-2.5 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Start Broadcasting
+                  </button>
                 )}
               </div>
             )}
-            </div>
-           </div>
-        </div>
- 
-        <div className="grid lg:grid-cols-3 gap-8 relative z-10">
-            {/* Add Stream + Search */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="glass-card p-6 sticky top-24">
-                <div className="flex items-center justify-between mb-6">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                         <Play className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                         <h3 className="font-heading font-bold text-lg">Add Track</h3>
-                         <p className="text-xs text-muted-foreground">Search or paste URL</p>
-                      </div>
-                   </div>
-                   <button
-                     onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery(""); }}
-                     className={`p-2 rounded-full transition-colors ${showSearch ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:text-foreground'}`}
-                   >
-                     <Search className="w-4 h-4" />
-                   </button>
-                </div>
+          </div>
 
-                {/* YouTube Search */}
-                {showSearch && (
-                  <div className="mb-4">
-                    <div className="relative">
-                      <Input
-                        placeholder="Search YouTube..."
-                        value={searchQuery}
-                        onChange={(e) => handleSearchInput(e.target.value)}
-                        className="bg-muted/50 border-border rounded-xl h-12 pr-10"
-                      />
-                      {searching && (
-                        <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-muted-foreground" />
-                      )}
-                    </div>
-                    {searchResults.length > 0 && (
-                      <div className="mt-2 space-y-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-card/90 backdrop-blur-md p-1">
-                        {searchResults.map((result) => (
-                          <button
-                            key={result.id}
-                            onClick={() => handleSelectSearchResult(result)}
-                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/80 transition-colors text-left group"
-                          >
-                            <img src={result.thumbnail} alt="" className="w-16 h-10 rounded object-cover flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{result.title}</p>
-                              <p className="text-[10px] text-muted-foreground">{result.channelTitle} {result.length && `• ${result.length}`}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+          {/* Add Song / Search panel */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1AA]">Queue a track</span>
+              <button
+                onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery(""); }}
+                className="text-xs text-[#10B981] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> {showSearch ? "Paste URL" : "Search YouTube"}
+              </button>
+            </div>
+
+            {showSearch ? (
+              <div className="relative">
+                <input
+                  placeholder="Search tracks on YouTube..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  className="w-full bg-[#090909] border border-[#27272A] rounded-xl h-10 px-3.5 text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors pr-10"
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-3 w-4 h-4 animate-spin text-[#A1A1AA]" />
+                )}
+                {searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-2 space-y-1 max-h-60 overflow-y-auto rounded-xl border border-[#27272A] bg-[#121212]/95 backdrop-blur-md p-1.5 z-30 shadow-lg">
+                    {searchResults.map((result) => (
+                      <button
+                        key={result.id}
+                        onClick={() => handleSelectSearchResult(result)}
+                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#18181B] transition-colors text-left group"
+                      >
+                        <img src={result.thumbnail} alt="" className="w-12 h-8 rounded object-cover flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-[#FAFAFA] truncate group-hover:text-[#10B981] transition-colors">{result.title}</p>
+                          <p className="text-[9px] text-[#A1A1AA] truncate">{result.channelTitle}</p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
-
-                {/* URL Input */}
-                <form onSubmit={handleAddStream} className="flex flex-col gap-3">
-                  <Input
-                      placeholder="Paste YouTube URL..."
-                      value={newStreamUrl}
-                      onChange={(e) => setNewStreamUrl(e.target.value)}
-                      disabled={addingStream}
-                      className="bg-muted/50 border-border rounded-xl h-12"
-                  />
-                  <Button type="submit" disabled={addingStream || !newStreamUrl.trim()} className="btn-neon w-full h-12 font-bold">
-                    {addingStream ? <Loader2 className="animate-spin" /> : "Add to Queue"}
-                  </Button>
-                </form>
-                
-                <div className="mt-6 pt-4 border-t border-border/50">
-                   <h4 className="text-sm font-medium mb-3 text-muted-foreground">Volume</h4>
-                   <div className="flex items-center gap-4">
-                      <input
-                         type="range"
-                         min="0"
-                         max="100"
-                         value={volume}
-                         onChange={(e) => updateVolume(Number(e.target.value))}
-                         className="flex-1 accent-primary"
-                         title="Local Volume"
-                      />
-                      <span className="text-sm font-mono text-primary w-10">{volume}%</span>
-                   </div>
-                </div>
               </div>
+            ) : (
+              <form onSubmit={handleAddStream} className="flex gap-2">
+                <input
+                  placeholder="Paste YouTube track URL..."
+                  value={newStreamUrl}
+                  onChange={(e) => setNewStreamUrl(e.target.value)}
+                  disabled={addingStream}
+                  className="flex-1 bg-[#090909] border border-[#27272A] rounded-xl h-10 px-3.5 text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
+                />
+                <button 
+                  type="submit" 
+                  disabled={addingStream || !newStreamUrl.trim()} 
+                  className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-10 text-xs font-bold rounded-xl px-5 transition-colors cursor-pointer"
+                >
+                  {addingStream ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : "Add Track"}
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Queue Section (Styled as premium cards, no spreadsheet) */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#27272A]/60">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#A1A1AA]">Upcoming Queue ({room.queue.length})</span>
             </div>
-     
-            {/* Queue */}
-            <div className="lg:col-span-2">
-               <div className="glass-card p-6 min-h-[500px]">
-                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
-                          <span className="text-secondary font-bold">{room.queue.length}</span>
-                       </div>
-                       <div>
-                          <h2 className="font-heading font-bold text-xl">Queue</h2>
-                          <p className="text-xs text-muted-foreground">Up next in {room.name}</p>
-                       </div>
-                    </div>
-                 </div>
-                 
-                 <div className="space-y-3">
-                 <AnimatePresence mode="popLayout">
-                 {room.queue.length === 0 ? (
-                    <div className="py-16 text-muted-foreground flex flex-col items-center glass rounded-xl">
-                        <p className="text-sm">No tracks in queue</p>
-                        <p className="text-xs mt-1">Add a YouTube URL to get started</p>
-                    </div>
-                 ) : (
-                     room.queue.map((stream, index) => {
-                     const hasUpvoted = myUpvotedStreamIds.has(stream.id);
-                     return (
-                     <motion.div
-                         layout
-                         initial={{ opacity: 0, x: -20 }}
-                         animate={{ opacity: 1, x: 0 }}
-                         exit={{ opacity: 0, x: 20 }}
-                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                         key={stream.id}
-                         className="flex items-center gap-4 p-4 group glass rounded-xl hover:border-primary/30 transition-all"
-                     >
-                         <span className="font-mono text-primary/60 text-sm w-6 font-bold">{(index + 1).toString().padStart(2, '0')}</span>
-                         {stream.smallImg && (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden">
-                               <img src={stream.smallImg} alt={stream.title} className="w-full h-full object-cover" />
-                            </div>
-                         )}
-                         
-                         <div className="flex-1 min-w-0">
-                             <h4 className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">{stream.title}</h4>
-                             <p className="text-xs text-muted-foreground">
-                                 Added by {stream.addedBy.split('@')[0]}
-                             </p>
-                         </div>
-                         <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleUpvote(stream.id, hasUpvoted)}
-                            disabled={upvotingIds.has(stream.id)}
-                            className={`gap-2 h-10 rounded-full transition-all duration-200 ${
-                              hasUpvoted 
-                                ? "bg-blue-500 text-white hover:bg-blue-600 scale-105" 
-                                : "border border-border text-muted-foreground hover:text-blue-500 hover:border-blue-500"
-                            }`}
-                         >
-                            <ThumbsUp className={`h-4 w-4 transition-transform ${hasUpvoted ? "fill-current scale-110" : ""}`} />
-                            <span className="font-bold">{stream.upvotes}</span>
-                         </Button>
-                     </motion.div>
-                     )}))}
-                 </AnimatePresence>
-                 </div>
-               </div>
+
+            <div className="space-y-3">
+              <AnimatePresence mode="popLayout">
+                {room.queue.length === 0 ? (
+                  <div className="py-12 text-center text-[#A1A1AA] text-xs">
+                    Queue is empty. Everyone contributes. Add a track above to get started.
+                  </div>
+                ) : (
+                  room.queue.map((stream, index) => {
+                    const hasUpvoted = myUpvotedStreamIds.has(stream.id);
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                        key={stream.id}
+                        className="flex items-center gap-4 p-3.5 rounded-2xl border border-[#27272A]/60 bg-[#090909]/40 hover:bg-[#090909]/80 hover:border-[#27272A] transition-all group"
+                      >
+                        <span className="text-[10px] font-mono text-[#A1A1AA]/50 w-5 text-center font-bold">
+                          {(index + 1).toString().padStart(2, '0')}
+                        </span>
+                        
+                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[#27272A]/60 bg-black">
+                          <img src={stream.smallImg || `https://img.youtube.com/vi/${stream.extractedId}/default.jpg`} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-[#FAFAFA] text-sm truncate group-hover:text-[#10B981] transition-colors">
+                            {stream.title}
+                          </h4>
+                          <p className="text-[10px] text-[#A1A1AA] mt-0.5">
+                            Added by <span className="text-[#FAFAFA]">{stream.addedBy?.split('@')[0] || "System"}</span>
+                          </p>
+                        </div>
+
+                        <motion.button
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => handleUpvote(stream.id, hasUpvoted)}
+                          disabled={upvotingIds.has(stream.id)}
+                          className={`flex items-center gap-1.5 h-8.5 rounded-full px-4 text-xs font-bold transition-all cursor-pointer ${
+                            hasUpvoted 
+                              ? "bg-[#10B981] text-white" 
+                              : "border border-[#27272A] text-[#A1A1AA] hover:text-[#10B981] hover:border-[#10B981]/50 bg-[#090909]/60"
+                          }`}
+                        >
+                          <ThumbsUp className={`h-3.5 w-3.5 ${hasUpvoted ? "fill-current" : ""}`} />
+                          <span>{stream.upvotes}</span>
+                        </motion.button>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </AnimatePresence>
             </div>
+          </div>
         </div>
 
-        {/* Chat Toggle Button */}
-        <button
-          onClick={() => setShowChat(!showChat)}
-          className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${
-            showChat ? 'bg-destructive text-destructive-foreground' : 'btn-neon'
-          }`}
-        >
-          {showChat ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-        </button>
-
-        {/* Chat Panel */}
-        <AnimatePresence>
-        {showChat && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed bottom-24 right-6 z-50 w-80 md:w-96 glass-card shadow-2xl flex flex-col overflow-hidden"
-            style={{ maxHeight: '60vh' }}
-          >
-            {/* Chat Header */}
-            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-card/80">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-primary" />
-                <span className="font-heading font-bold text-sm">Room Chat</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground font-mono">{messages.length} msgs</span>
+        {/* RIGHT SIDEBAR: Live Activity / Social Chat (Col-span 4) */}
+        <div className="lg:col-span-4 shrink-0 flex flex-col gap-6">
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl flex flex-col overflow-hidden h-[540px]">
+            <div className="px-4 py-3.5 border-b border-[#27272A]/60 flex items-center justify-between bg-[#121212]">
+              <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-[#10B981]" /> Room Chat & Logs
+              </span>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[200px] max-h-[40vh]">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <MessageCircle className="w-8 h-8 opacity-20 mb-2" />
-                  <p className="text-xs">No messages yet. Say hi! 👋</p>
+            {/* Combined Chat Log containing message and music event tags */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+              {combinedLog.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-[#A1A1AA]/50 text-xs text-center p-4">
+                  <MessageSquare className="w-6 h-6 opacity-35 mb-2" />
+                  <p>Feed is quiet.</p>
+                  <p className="text-[10px] mt-0.5">Start sending messages or queue tracks.</p>
                 </div>
               ) : (
-                messages.map((msg) => {
-                  const isMe = msg.userEmail === session?.user?.email;
+                combinedLog.map((log) => {
+                  if (log.type === "event") {
+                    return (
+                      <div 
+                        key={log.id} 
+                        className={`text-[10px] border rounded-lg py-1.5 px-3 italic flex items-center gap-1.5 ${
+                          log.isHighlight 
+                            ? "bg-[#F59E0B]/5 border-[#F59E0B]/15 text-[#A1A1AA]" 
+                            : "bg-[#10B981]/5 border-[#10B981]/15 text-[#A1A1AA]"
+                        }`}
+                      >
+                        <Sparkles className={`w-3 h-3 ${log.isHighlight ? "text-[#F59E0B]" : "text-[#10B981]"}`} />
+                        <span>
+                          <strong className="text-white not-italic">{log.user}</strong> {log.text}
+                          {log.isHighlight && (
+                            <span className="ml-1.5 not-italic text-[8px] font-bold text-[#F59E0B] uppercase bg-[#F59E0B]/10 px-1 py-0.2 rounded border border-[#F59E0B]/15">
+                              Hot Track
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  }
                   return (
-                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                      <span className="text-[10px] text-muted-foreground mb-0.5 px-1">
-                        {isMe ? 'You' : msg.userEmail.split('@')[0]}
-                      </span>
-                      <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words ${
-                        isMe
-                          ? 'bg-primary text-primary-foreground rounded-br-md'
-                          : 'bg-muted text-foreground rounded-bl-md'
-                      }`}>
-                        {msg.text}
+                    <div key={log.id} className="text-xs space-y-1">
+                      <div className="flex justify-between text-[9px] text-[#A1A1AA]">
+                        <span className="font-semibold">{log.user}</span>
+                      </div>
+                      <div className="bg-[#090909]/60 border border-[#27272A]/50 rounded-lg p-2.5 text-[#FAFAFA] leading-relaxed break-words font-medium">
+                        {log.text}
                       </div>
                     </div>
                   );
@@ -866,93 +814,173 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <div ref={chatEndRef} />
             </div>
 
-            {/* Message Input */}
-            <form onSubmit={handleSendMessage} className="p-2 border-t border-border/50 flex gap-2 bg-card/80">
-              <Input
-                placeholder="Type a message..."
+            {/* Input Form */}
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-[#27272A]/60 bg-[#090909]/20 flex gap-2">
+              <input
+                placeholder="Say something to the room..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 disabled={sendingMessage}
-                className="flex-1 h-10 bg-muted/50 border-border rounded-full text-sm"
+                className="flex-1 h-9 px-3.5 bg-[#090909] border border-[#27272A] rounded-xl text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
                 maxLength={500}
               />
-              <Button
+              <button
                 type="submit"
                 disabled={sendingMessage || !newMessage.trim()}
-                className="btn-neon h-10 w-10 rounded-full p-0 flex items-center justify-center"
+                className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-colors cursor-pointer"
               >
-                {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+                {sendingMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              </button>
             </form>
-          </motion.div>
-        )}
-        </AnimatePresence>
+          </div>
+        </div>
+      </main>
 
-        {/* QR Code Share Modal */}
-        <AnimatePresence>
+      {/* GLOBAL FLOATING PLAYER DOCK */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-4xl bg-[#121212]/95 backdrop-blur-md border border-[#27272A] shadow-2xl rounded-2xl px-6 py-3 flex items-center justify-between gap-6 transition-all">
+        {room.currentStream ? (
+          <>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-[#27272A]/60 bg-black">
+                <img src={currentArtworkUrl} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-bold text-white text-xs truncate">{room.currentStream.title}</h4>
+                <p className="text-[10px] text-[#A1A1AA] mt-0.5 truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" /> Synchronized
+                </p>
+              </div>
+            </div>
+
+            {/* Waveform / Slider */}
+            <div className="hidden md:flex flex-col items-center gap-1.5 flex-[2] max-w-md">
+              <div 
+                className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
+                onClick={(e) => {
+                  if (!playerRef.current || !duration) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const percent = x / rect.width;
+                  const newTime = percent * duration;
+                  playerRef.current.seekTo(newTime, true);
+                  setProgress(newTime);
+                }}
+              >
+                <div 
+                  className="absolute top-0 left-0 h-full bg-[#10B981] rounded-full"
+                  style={{ width: `${(progress / duration) * 100}%` }}
+                />
+              </div>
+              <div className="w-full flex justify-between text-[9px] font-mono text-[#A1A1AA] tracking-widest">
+                <span>{Math.floor(progress / 60).toString().padStart(2, '0')}:{Math.floor(progress % 60).toString().padStart(2, '0')}</span>
+                <span>{(duration / 60).toFixed(0).padStart(2, '0')}:{(duration % 60).toFixed(0).padStart(2, '0')}</span>
+              </div>
+            </div>
+
+            {/* Play/Pause controls */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => {
+                  if (playerRef.current) {
+                      if (isPlaying) playerRef.current.pauseVideo();
+                      else playerRef.current.playVideo();
+                      setIsPlaying(!isPlaying);
+                  }
+                }}
+                className="bg-[#090909] hover:bg-[#18181B] border border-[#27272A] h-8 w-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+              >
+                {isPlaying ? <Pause className="h-3.5 w-3.5 text-[#10B981]" /> : <Play className="h-3.5 w-3.5 ml-0.5 text-[#10B981]" />}
+              </button>
+              {isHost && (
+                <button 
+                  onClick={handlePlayNext} 
+                  disabled={loadingNext} 
+                  className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                >
+                  {loadingNext ? <Loader2 className="h-3.5 h-3.5 animate-spin" /> : <SkipForward className="h-3.5 h-3.5" />}
+                </button>
+              )}
+              
+              <div className="hidden sm:flex items-center gap-2 border-l border-[#27272A]/80 pl-4 ml-2">
+                <Volume2 className="h-3.5 w-3.5 text-[#A1A1AA]" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={volume}
+                  onChange={(e) => updateVolume(Number(e.target.value))}
+                  className="w-16 h-1 accent-[#10B981] cursor-pointer"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="w-full text-center text-xs text-[#A1A1AA] font-semibold">
+            Ready to broadcast
+          </div>
+        )}
+      </div>
+
+      {/* QR Invite Modal */}
+      <AnimatePresence>
         {showShareModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
             onClick={() => setShowShareModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="glass-card p-8 max-w-sm w-full text-center space-y-6"
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#121212] border border-[#27272A] p-6 rounded-2xl max-w-sm w-full text-center space-y-5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div>
-                <h3 className="font-heading font-black text-2xl mb-1">Share Room</h3>
-                <p className="text-muted-foreground text-sm">Invite friends to join this session</p>
+                <h3 className="font-heading font-black text-lg text-white">Invite Listeners</h3>
+                <p className="text-[#A1A1AA] text-xs mt-0.5">Let them join the session</p>
               </div>
 
-              {/* Room Code */}
-              <div className="bg-muted/50 rounded-xl p-4 border border-border">
-                <p className="text-[10px] text-muted-foreground font-mono mb-1 uppercase">Room Code</p>
-                <p className="text-3xl font-mono font-black text-primary tracking-widest">{room.code}</p>
+              <div className="bg-[#090909] rounded-xl p-3 border border-[#27272A]">
+                <p className="text-[9px] text-[#A1A1AA] font-mono mb-0.5 uppercase tracking-wider">Room Code</p>
+                <p className="text-xl font-mono font-black text-[#10B981] tracking-widest">{room.code}</p>
               </div>
 
-              {/* QR Code */}
-              <div className="bg-white rounded-xl p-4 inline-block mx-auto">
+              <div className="bg-white rounded-xl p-3 inline-block mx-auto border border-[#27272A]">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&color=0-0-0&bgcolor=255-255-255&format=svg`}
-                  alt="Room QR Code"
-                  className="w-48 h-48"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&color=0-0-0&bgcolor=255-255-255&format=svg`}
+                  alt="QR Code"
+                  className="w-36 h-36"
                 />
               </div>
 
-              {/* Copy Link Button */}
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
                   setLinkCopied(true);
                   setTimeout(() => setLinkCopied(false), 2000);
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-colors border border-border"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#090909] hover:bg-[#18181B] text-white transition-colors border border-[#27272A] cursor-pointer"
               >
                 {linkCopied ? (
-                  <><Check className="w-4 h-4 text-primary" /> <span className="text-sm font-medium">Link Copied!</span></>
+                  <><Check className="w-3.5 h-3.5 text-[#10B981]" /> <span className="text-xs font-semibold">Copied!</span></>
                 ) : (
-                  <><Copy className="w-4 h-4" /> <span className="text-sm font-medium">Copy Room Link</span></>
+                  <><Copy className="w-3.5 h-3.5 text-[#A1A1AA]" /> <span className="text-xs font-semibold">Copy Room URL</span></>
                 )}
               </button>
 
               <button
                 onClick={() => setShowShareModal(false)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-[#A1A1AA] hover:text-white transition-colors block mx-auto cursor-pointer"
               >
                 Close
               </button>
             </motion.div>
           </motion.div>
         )}
-        </AnimatePresence>
-      </main>
+      </AnimatePresence>
     </div>
   );
 }
