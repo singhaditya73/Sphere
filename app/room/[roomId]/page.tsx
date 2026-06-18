@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
-  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star
+  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
@@ -176,8 +176,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const fetchRoomData = async () => {
     try {
       const response = await fetch(`/api/rooms/${roomId}`);
-      const data = await response.json();
-      if (response.ok) {
+      if (!response.ok) {
+        console.error("Failed to fetch room:", response.statusText);
+        return;
+      }
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
         setRoom(data.room);
         localStorage.setItem("sphere_active_room_id", roomId);
       }
@@ -191,8 +196,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const fetchMyUpvotes = async () => {
     try {
       const response = await fetch(`/api/streams/my-upvotes?roomId=${roomId}`);
-      const data = await response.json();
-      if (response.ok) {
+      if (!response.ok) return;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
         setMyUpvotedStreamIds(new Set(data.upvotedStreamIds));
       }
     } catch (error) {
@@ -203,8 +210,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const fetchMessages = async () => {
     try {
       const response = await fetch(`/api/rooms/${roomId}/messages`);
-      const data = await response.json();
-      if (response.ok) {
+      if (!response.ok) return;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
         setMessages(data.messages || []);
       }
     } catch (error) {
@@ -233,6 +242,27 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       console.error(error);
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!window.confirm("Are you absolutely sure you want to delete this room? This action will end the session for everyone and delete all queue data. It cannot be undone.")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        localStorage.removeItem("sphere_active_room_id");
+        router.push("/dashboard");
+      } else {
+        const data = await response.json();
+        alert(data.message || "Failed to delete room");
+      }
+    } catch (err) {
+      console.error("Error deleting room:", err);
+      alert("An error occurred while deleting the room");
     }
   };
 
@@ -504,30 +534,22 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 >
                   Leave
                 </button>
+                {isHost && (
+                  <button
+                    onClick={handleDeleteRoom}
+                    className="rounded-full px-4 py-1.5 bg-[#7F1D1D]/15 border border-[#EF4444]/20 hover:bg-[#7F1D1D]/30 text-xs font-bold text-[#F87171] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Room
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Listener avatars presence row */}
+            {/* Listener presence row */}
             <div className="flex items-center gap-3 border-t border-[#27272A]/60 pt-4 flex-wrap">
               <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1AA] flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-[#10B981]" /> Listening Now ({listenerEmails.length})
               </span>
-              <div className="flex -space-x-1.5 overflow-hidden">
-                {listenerEmails.map((email) => (
-                  <div
-                    key={email}
-                    className="inline-block h-6.5 w-6.5 rounded-full ring-2 ring-[#121212] bg-[#10B981]/20 flex items-center justify-center text-[10px] font-bold text-[#10B981] uppercase"
-                    title={email}
-                  >
-                    {email.charAt(0)}
-                  </div>
-                ))}
-                {listenerEmails.length > 5 && (
-                  <div className="inline-block h-6.5 w-6.5 rounded-full ring-2 ring-[#121212] bg-[#18181B] flex items-center justify-center text-[9px] font-bold text-[#71717A]">
-                    +{listenerEmails.length - 5}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 

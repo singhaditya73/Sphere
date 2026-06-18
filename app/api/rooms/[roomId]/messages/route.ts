@@ -54,8 +54,8 @@ export async function GET(
       messages: messages.map((m) => ({
         id: m.id,
         text: m.text,
-        userEmail: m.user.email,
-        username: m.user.username,
+        userEmail: m.user?.email || null,
+        username: m.user?.username || null,
         createdAt: m.createdAt,
       })),
     });
@@ -116,8 +116,8 @@ export async function POST(
       message: {
         id: message.id,
         text: message.text,
-        userEmail: message.user.email,
-        username: message.user.username,
+        userEmail: message.user?.email || null,
+        username: message.user?.username || null,
         createdAt: message.createdAt,
       },
     });

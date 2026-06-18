@@ -167,10 +167,10 @@ export default function Home() {
         {/* Subtle emerald lighting overlay */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#10B981]/3 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-12 gap-12 items-center relative z-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10 w-full">
           
           {/* Hero Content */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-6 w-full">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/20">
               <Sparkles className="h-3 w-3 text-[#10B981]" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
@@ -225,7 +225,7 @@ export default function Home() {
           </div>
 
           {/* Premium Live Room Preview (100% Real application data) */}
-          <div className="lg:col-span-6 relative">
+          <div className="lg:col-span-6 relative w-full">
             <div className="absolute inset-0 bg-[#10B981]/2 rounded-3xl blur-3xl pointer-events-none" />
             
             {loadingHero ? (
@@ -299,13 +299,13 @@ export default function Home() {
                       <span className="text-[9px] font-bold tracking-wider text-[#A1A1AA] uppercase block mb-1">Upcoming Queue</span>
                       
                       {heroRoom.queue.slice(0, 2).map((q: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-[#090909]/30 border border-[#27272A]/30 text-xs">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-[9px] font-mono text-[#71717A]">0{idx+1}</span>
-                            <p className="font-bold text-white truncate max-w-[200px]">{q.title}</p>
-                            <span className="text-[9px] text-[#71717A]">by {q.addedBy}</span>
+                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-[#090909]/30 border border-[#27272A]/30 text-xs gap-3">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-[9px] font-mono text-[#71717A] shrink-0">0{idx+1}</span>
+                            <p className="font-bold text-white truncate flex-1">{q.title}</p>
+                            <span className="text-[9px] text-[#71717A] shrink-0">by {q.addedBy}</span>
                           </div>
-                          <div className="flex items-center gap-2 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          <div className="flex items-center gap-2 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
                             <ThumbsUp className="w-2.5 h-2.5 fill-current" />
                             <span>{q.upvotes}</span>
                           </div>
@@ -389,7 +389,7 @@ export default function Home() {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
               {topRooms.map((room) => {
                 const isTrending = room.totalVotes > 20;
                 return (
