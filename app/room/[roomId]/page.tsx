@@ -74,6 +74,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -223,7 +225,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       if (response.ok) {
         setNewMessage("");
         fetchMessages();
-        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
       }
     } catch (error) {
       console.error(error);
@@ -283,7 +287,16 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   }, [session, roomId]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    // Check if the user is already near the bottom (within 150px)
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+
+    if (isFirstLoad.current || isAtBottom) {
+      container.scrollTop = container.scrollHeight;
+      isFirstLoad.current = false;
+    }
   }, [messages]);
 
   const handleAddStream = async (e: React.FormEvent) => {
@@ -767,7 +780,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             </div>
 
             {/* Combined Chat Log containing message and music event tags */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {combinedLog.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-[#A1A1AA]/50 text-xs text-center p-4">
                   <MessageSquare className="w-6 h-6 opacity-35 mb-2" />
