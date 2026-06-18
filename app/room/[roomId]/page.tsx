@@ -123,15 +123,30 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   useEffect(() => {
     if (isApiReady && room?.currentStream?.type === 'Youtube' && room.currentStream.extractedId) {
-        // Double check if player instance already exists for this video
+        // If player already exists, load the new video instead of destroying
         if (playerRef.current) {
-            // if we are already playing this video, do nothing, otherwise load new video
-            // But for now, safe to destroy and recreate or use loadVideoById
-             if(playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
-                 return;
-             }
-             playerRef.current.destroy();
+            try {
+              // Check if still playing the same video
+              if (playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
+                return;
+              }
+              // Load new video into existing player
+              playerRef.current.loadVideoById(room.currentStream.extractedId);
+              playerRef.current.setVolume(volume);
+              setIsPlaying(true);
+              setProgress(0);
+              setDuration(0);
+              return;
+            } catch (e) {
+              // Player is in a bad state, recreate it
+              console.log("Player in bad state, recreating...");
+              playerRef.current = null;
+            }
         }
+
+        // Make sure the target div exists
+        const targetEl = document.getElementById('youtube-player');
+        if (!targetEl) return;
 
         playerRef.current = new (window as any).YT.Player('youtube-player', {
             height: '100%',

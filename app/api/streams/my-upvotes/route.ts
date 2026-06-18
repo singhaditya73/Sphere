@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { isRoomCode } from "@/lib/room-code";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
@@ -20,13 +21,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const roomId = req.nextUrl.searchParams.get("roomId");
+    const roomIdParam = req.nextUrl.searchParams.get("roomId");
 
-    if (!roomId) {
+    if (!roomIdParam) {
       return NextResponse.json(
         { message: "Room ID required" },
         { status: 400 }
       );
+    }
+
+    // Resolve room code to actual database ID
+    let roomId = roomIdParam;
+    if (isRoomCode(roomIdParam)) {
+      const room = await prismaClient.room.findFirst({
+        where: { code: roomIdParam.toUpperCase(), isActive: true },
+        select: { id: true },
+      });
+      if (!room) {
+        return NextResponse.json(
+          { message: "Room not found" },
+          { status: 404 }
+        );
+      }
+      roomId = room.id;
     }
 
     const upvotes = await prismaClient.upvote.findMany({

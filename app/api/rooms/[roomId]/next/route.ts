@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { isRoomCode } from "@/lib/room-code";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
@@ -24,10 +25,15 @@ export async function POST(
     }
 
     const params = await props.params;
-    const roomId = params.roomId;
+    const roomIdParam = params.roomId;
 
-    const room = await prismaClient.room.findUnique({
-      where: { id: roomId },
+    // Resolve room code to actual database ID
+    const whereClause = isRoomCode(roomIdParam)
+      ? { code: roomIdParam.toUpperCase(), isActive: true }
+      : { id: roomIdParam, isActive: true };
+
+    const room = await prismaClient.room.findFirst({
+      where: whereClause,
     });
 
     if (!room) {
@@ -36,6 +42,8 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    const roomId = room.id;
 
     // Mark current stream as played if exists
     if (room.currentStreamId) {
