@@ -1,4 +1,4 @@
-# BeatNet 🎵
+# Sphere
 
 > **Music Powered by Democracy**
 
