@@ -154,6 +154,14 @@ exports.Prisma.UpvoteScalarFieldEnum = {
   streamId: 'streamId'
 };
 
+exports.Prisma.MessageScalarFieldEnum = {
+  id: 'id',
+  text: 'text',
+  userId: 'userId',
+  roomId: 'roomId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -181,7 +189,8 @@ exports.Prisma.ModelName = {
   User: 'User',
   Room: 'Room',
   Stream: 'Stream',
-  Upvote: 'Upvote'
+  Upvote: 'Upvote',
+  Message: 'Message'
 };
 
 /**

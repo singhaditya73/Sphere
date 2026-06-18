@@ -1,15 +1,30 @@
 "use client";
 
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { Loader2, Play, ThumbsUp, Pause, SkipForward, Music } from "lucide-react";
+import { Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send, Search, X, QrCode, Copy, Check, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
-import { AudioVisualizer } from "@/components/audio-visualizer";
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  userEmail: string;
+  createdAt: string;
+}
+
+interface SearchResult {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channelTitle: string;
+  length: string;
+  url: string;
+}
 
 interface Stream {
   id: string;
@@ -54,6 +69,24 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [duration, setDuration] = useState(0);
   const [loadingNext, setLoadingNext] = useState(false);
   const playerRef = useRef<any>(null);
+
+  // Chat state
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // QR / Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const updateVolume = (newVolume: number) => {
     setVolume(newVolume);
@@ -171,6 +204,74 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
   };
 
+  // Chat functions
+  const fetchMessages = async () => {
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/messages`);
+      const data = await response.json();
+      if (response.ok) {
+        setMessages(data.messages);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sendingMessage) return;
+    setSendingMessage(true);
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newMessage }),
+      });
+      if (response.ok) {
+        setNewMessage("");
+        fetchMessages();
+        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  // Search functions
+  const handleSearch = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (response.ok) {
+        setSearchResults(data.results || []);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => handleSearch(value), 400);
+  };
+
+  const handleSelectSearchResult = (result: SearchResult) => {
+    setNewStreamUrl(result.url);
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearch(false);
+  };
+
   useEffect(() => {
     if (!session) {
       const currentPath = window.location.pathname;
@@ -179,13 +280,22 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
     fetchRoomData();
     fetchMyUpvotes();
+    fetchMessages();
     // Poll for updates every 2 seconds for near real-time feel
     const interval = setInterval(() => {
       fetchRoomData();
       fetchMyUpvotes();
+      fetchMessages();
     }, 2000);
     return () => clearInterval(interval);
   }, [session, roomId]);
+
+  // Auto-scroll chat when new messages arrive
+  useEffect(() => {
+    if (showChat) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, showChat]);
 
   const handleAddStream = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -357,14 +467,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                    </>
                  )}
                  <button 
-                   onClick={() => {
-                       navigator.clipboard.writeText(window.location.href);
-                       setCopied(true);
-                       setTimeout(() => setCopied(false), 2000);
-                   }}
-                   className="px-3 py-1 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground text-xs transition-colors"
+                   onClick={() => setShowShareModal(true)}
+                   className="px-3 py-1 rounded-full bg-secondary/20 hover:bg-secondary/30 text-secondary text-xs transition-colors flex items-center gap-1"
                  >
-                   Share Link
+                   <QrCode className="w-3 h-3" /> Share
                  </button>
              </div>
           </div>
@@ -529,19 +635,63 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         </div>
  
         <div className="grid lg:grid-cols-3 gap-8 relative z-10">
-            {/* Add Stream */}
-            <div className="lg:col-span-1">
+            {/* Add Stream + Search */}
+            <div className="lg:col-span-1 space-y-6">
               <div className="glass-card p-6 sticky top-24">
-                <div className="flex items-center gap-3 mb-6">
-                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Play className="w-5 h-5 text-primary" />
+                <div className="flex items-center justify-between mb-6">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                         <Play className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                         <h3 className="font-heading font-bold text-lg">Add Track</h3>
+                         <p className="text-xs text-muted-foreground">Search or paste URL</p>
+                      </div>
                    </div>
-                   <div>
-                      <h3 className="font-heading font-bold text-lg">Add Track</h3>
-                      <p className="text-xs text-muted-foreground">YouTube URL</p>
-                   </div>
+                   <button
+                     onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery(""); }}
+                     className={`p-2 rounded-full transition-colors ${showSearch ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:text-foreground'}`}
+                   >
+                     <Search className="w-4 h-4" />
+                   </button>
                 </div>
-                <form onSubmit={handleAddStream} className="flex flex-col gap-4">
+
+                {/* YouTube Search */}
+                {showSearch && (
+                  <div className="mb-4">
+                    <div className="relative">
+                      <Input
+                        placeholder="Search YouTube..."
+                        value={searchQuery}
+                        onChange={(e) => handleSearchInput(e.target.value)}
+                        className="bg-muted/50 border-border rounded-xl h-12 pr-10"
+                      />
+                      {searching && (
+                        <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {searchResults.length > 0 && (
+                      <div className="mt-2 space-y-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-card/90 backdrop-blur-md p-1">
+                        {searchResults.map((result) => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSelectSearchResult(result)}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/80 transition-colors text-left group"
+                          >
+                            <img src={result.thumbnail} alt="" className="w-16 h-10 rounded object-cover flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{result.title}</p>
+                              <p className="text-[10px] text-muted-foreground">{result.channelTitle} {result.length && `• ${result.length}`}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL Input */}
+                <form onSubmit={handleAddStream} className="flex flex-col gap-3">
                   <Input
                       placeholder="Paste YouTube URL..."
                       value={newStreamUrl}
@@ -554,8 +704,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   </Button>
                 </form>
                 
-                <div className="mt-8 pt-6 border-t border-border/50">
-                   <h4 className="text-sm font-medium mb-4 text-muted-foreground">Volume Control</h4>
+                <div className="mt-6 pt-4 border-t border-border/50">
+                   <h4 className="text-sm font-medium mb-3 text-muted-foreground">Volume</h4>
                    <div className="flex items-center gap-4">
                       <input
                          type="range"
@@ -637,8 +787,153 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                </div>
             </div>
         </div>
+
+        {/* Chat Toggle Button */}
+        <button
+          onClick={() => setShowChat(!showChat)}
+          className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${
+            showChat ? 'bg-destructive text-destructive-foreground' : 'btn-neon'
+          }`}
+        >
+          {showChat ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+        </button>
+
+        {/* Chat Panel */}
+        <AnimatePresence>
+        {showChat && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed bottom-24 right-6 z-50 w-80 md:w-96 glass-card shadow-2xl flex flex-col overflow-hidden"
+            style={{ maxHeight: '60vh' }}
+          >
+            {/* Chat Header */}
+            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-card/80">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-primary" />
+                <span className="font-heading font-bold text-sm">Room Chat</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-mono">{messages.length} msgs</span>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[200px] max-h-[40vh]">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <MessageCircle className="w-8 h-8 opacity-20 mb-2" />
+                  <p className="text-xs">No messages yet. Say hi! 👋</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMe = msg.userEmail === session?.user?.email;
+                  return (
+                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      <span className="text-[10px] text-muted-foreground mb-0.5 px-1">
+                        {isMe ? 'You' : msg.userEmail.split('@')[0]}
+                      </span>
+                      <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words ${
+                        isMe
+                          ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : 'bg-muted text-foreground rounded-bl-md'
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <form onSubmit={handleSendMessage} className="p-2 border-t border-border/50 flex gap-2 bg-card/80">
+              <Input
+                placeholder="Type a message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                disabled={sendingMessage}
+                className="flex-1 h-10 bg-muted/50 border-border rounded-full text-sm"
+                maxLength={500}
+              />
+              <Button
+                type="submit"
+                disabled={sendingMessage || !newMessage.trim()}
+                className="btn-neon h-10 w-10 rounded-full p-0 flex items-center justify-center"
+              >
+                {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </form>
+          </motion.div>
+        )}
+        </AnimatePresence>
+
+        {/* QR Code Share Modal */}
+        <AnimatePresence>
+        {showShareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowShareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="glass-card p-8 max-w-sm w-full text-center space-y-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <h3 className="font-heading font-black text-2xl mb-1">Share Room</h3>
+                <p className="text-muted-foreground text-sm">Invite friends to join this session</p>
+              </div>
+
+              {/* Room Code */}
+              <div className="bg-muted/50 rounded-xl p-4 border border-border">
+                <p className="text-[10px] text-muted-foreground font-mono mb-1 uppercase">Room Code</p>
+                <p className="text-3xl font-mono font-black text-primary tracking-widest">{room.code}</p>
+              </div>
+
+              {/* QR Code */}
+              <div className="bg-white rounded-xl p-4 inline-block mx-auto">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&color=0-0-0&bgcolor=255-255-255&format=svg`}
+                  alt="Room QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+
+              {/* Copy Link Button */}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-colors border border-border"
+              >
+                {linkCopied ? (
+                  <><Check className="w-4 h-4 text-primary" /> <span className="text-sm font-medium">Link Copied!</span></>
+                ) : (
+                  <><Copy className="w-4 h-4" /> <span className="text-sm font-medium">Copy Room Link</span></>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+        </AnimatePresence>
       </main>
     </div>
   );
 }
-
