@@ -20,6 +20,9 @@ const fontHeading = FontHeading({
 export const metadata: Metadata = {
   title: "Sphere - Music Powered by Democracy",
   description: "Vote for your favorite songs and let the crowd decide what plays next.",
+  icons: {
+    icon: "/icon.svg",
+  },
 }
 
 export default function RootLayout({
