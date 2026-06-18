@@ -177,7 +177,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/aditya/Desktop/BeatNet/app/generated/prisma",
+      "value": "/vercel/sandbox/primary/app/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -191,12 +191,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/aditya/Desktop/BeatNet/prisma/schema.prisma",
+    "sourceFilePath": "/vercel/sandbox/primary/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "6.6.0",
@@ -205,11 +204,12 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://postgres:Iamaditya%4073@db.rburnuigmbfvwmdiomyc.supabase.co:5432/postgres"
+        "value": null
       }
     }
   },
