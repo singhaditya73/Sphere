@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.svg",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Sphere",
+  },
 }
 
 export default function RootLayout({

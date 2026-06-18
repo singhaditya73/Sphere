@@ -69,6 +69,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [loadingNext, setLoadingNext] = useState(false);
   const playerRef = useRef<any>(null);
 
+  const isHost = session?.user?.email === room?.host?.email;
+
   // Chat & social activity log feed
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -163,6 +165,46 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   }, [isApiReady, room?.currentStream?.extractedId]);
 
   useEffect(() => {
+    if (typeof window !== "undefined" && "mediaSession" in navigator && room?.currentStream) {
+      const artworkUrl = room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: room.currentStream.title || "Unknown Track",
+        artist: "BeatNet",
+        album: room.name || "Sphere Channel",
+        artwork: [
+          {
+            src: artworkUrl,
+            sizes: "512x512",
+            type: "image/jpeg",
+          },
+        ],
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => {
+        if (playerRef.current) {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+        }
+      });
+
+      if (isHost) {
+        navigator.mediaSession.setActionHandler("nexttrack", () => {
+          handlePlayNext();
+        });
+      } else {
+        navigator.mediaSession.setActionHandler("nexttrack", null);
+      }
+    }
+  }, [room?.currentStream?.extractedId, room?.name, isHost]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const time = playerRef.current.getCurrentTime();
@@ -185,6 +227,28 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         const data = await response.json();
         setRoom(data.room);
         localStorage.setItem("sphere_active_room_id", roomId);
+
+        // Track joined rooms for the user
+        const hostEmail = data.room.host?.email;
+        const currentEmail = session?.user?.email;
+        if (hostEmail && currentEmail && hostEmail !== currentEmail) {
+          const joinedStr = localStorage.getItem("sphere_joined_rooms") || "[]";
+          try {
+            let joinedList = JSON.parse(joinedStr);
+            if (!Array.isArray(joinedList)) joinedList = [];
+            joinedList = joinedList.filter((r: any) => r.id !== data.room.id);
+            joinedList.unshift({
+              id: data.room.id,
+              name: data.room.name,
+              hostEmail: hostEmail,
+              code: data.room.code,
+            });
+            if (joinedList.length > 20) joinedList.pop();
+            localStorage.setItem("sphere_joined_rooms", JSON.stringify(joinedList));
+          } catch (e) {
+            console.error("Error updating sphere_joined_rooms:", e);
+          }
+        }
       }
     } catch (error) {
       console.error(error);
@@ -455,7 +519,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     );
   }
 
-  const isHost = session?.user?.email === room.host.email;
 
   // Synthesize active listening presence array
   const listenerEmails = Array.from(new Set([
