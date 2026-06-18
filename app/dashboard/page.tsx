@@ -110,8 +110,8 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#A1A1AA] bg-[#121212] px-3.5 py-1.5 rounded-full border border-[#27272A]">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             Live Sync Active
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live Sync Active
           </div>
         </div>
 
@@ -125,8 +125,8 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <button 
-                  onClick={() => setShowCreateForm(true)} 
+                <button
+                  onClick={() => setShowCreateForm(true)}
                   className="rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white transition-all h-10 px-6 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer active:scale-97"
                 >
                   <Plus className="h-4 w-4" />
@@ -156,9 +156,9 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                      type="submit" 
-                      disabled={creatingRoom || !newRoomName.trim()} 
+                    <button
+                      type="submit"
+                      disabled={creatingRoom || !newRoomName.trim()}
                       className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-9 text-xs font-bold px-4 rounded-xl flex-1 transition-colors cursor-pointer"
                     >
                       {creatingRoom ? <Loader2 className="animate-spin h-3.5 w-3.5 mx-auto" /> : "Create"}
@@ -187,7 +187,7 @@ export default function DashboardPage() {
               Active Queues ({rooms.length})
             </h2>
           </div>
-          
+
           {rooms.length === 0 ? (
             <div className="border border-dashed border-[#27272A] rounded-2xl p-12 flex flex-col items-center justify-center text-center bg-[#121212]/30">
               <Radio className="mb-4 h-8 w-8 text-[#A1A1AA]/40" />

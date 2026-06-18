@@ -42,6 +42,7 @@ export async function GET(
         user: {
           select: {
             email: true,
+            username: true,
           },
         },
       },
@@ -54,6 +55,7 @@ export async function GET(
         id: m.id,
         text: m.text,
         userEmail: m.user.email,
+        username: m.user.username,
         createdAt: m.createdAt,
       })),
     });
@@ -102,7 +104,10 @@ export async function POST(
       },
       include: {
         user: {
-          select: { email: true },
+          select: { 
+            email: true,
+            username: true,
+          },
         },
       },
     });
@@ -112,6 +117,7 @@ export async function POST(
         id: message.id,
         text: message.text,
         userEmail: message.user.email,
+        username: message.user.username,
         createdAt: message.createdAt,
       },
     });

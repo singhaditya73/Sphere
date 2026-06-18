@@ -12,7 +12,7 @@ export async function GET(
     const roomId = params.roomId;
 
     // Support lookup by code (BEAT-XXXX) or by UUID
-    const whereClause = isRoomCode(roomId) 
+    const whereClause = isRoomCode(roomId)
       ? { code: roomId.toUpperCase(), isActive: true }
       : { id: roomId, isActive: true };
 

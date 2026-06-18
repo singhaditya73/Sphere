@@ -1402,18 +1402,21 @@ export namespace Prisma {
   export type UserMinAggregateOutputType = {
     id: string | null
     email: string | null
+    username: string | null
     provider: $Enums.Provider | null
   }
 
   export type UserMaxAggregateOutputType = {
     id: string | null
     email: string | null
+    username: string | null
     provider: $Enums.Provider | null
   }
 
   export type UserCountAggregateOutputType = {
     id: number
     email: number
+    username: number
     provider: number
     _all: number
   }
@@ -1422,18 +1425,21 @@ export namespace Prisma {
   export type UserMinAggregateInputType = {
     id?: true
     email?: true
+    username?: true
     provider?: true
   }
 
   export type UserMaxAggregateInputType = {
     id?: true
     email?: true
+    username?: true
     provider?: true
   }
 
   export type UserCountAggregateInputType = {
     id?: true
     email?: true
+    username?: true
     provider?: true
     _all?: true
   }
@@ -1513,6 +1519,7 @@ export namespace Prisma {
   export type UserGroupByOutputType = {
     id: string
     email: string | null
+    username: string | null
     provider: $Enums.Provider
     _count: UserCountAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
@@ -1536,6 +1543,7 @@ export namespace Prisma {
   export type UserSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    username?: boolean
     provider?: boolean
     streams?: boolean | User$streamsArgs<ExtArgs>
     upvote?: boolean | User$upvoteArgs<ExtArgs>
@@ -1547,22 +1555,25 @@ export namespace Prisma {
   export type UserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    username?: boolean
     provider?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    username?: boolean
     provider?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
     email?: boolean
+    username?: boolean
     provider?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "provider", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "username" | "provider", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     streams?: boolean | User$streamsArgs<ExtArgs>
     upvote?: boolean | User$upvoteArgs<ExtArgs>
@@ -1584,6 +1595,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       email: string | null
+      username: string | null
       provider: $Enums.Provider
     }, ExtArgs["result"]["user"]>
     composites: {}
@@ -2014,6 +2026,7 @@ export namespace Prisma {
   interface UserFieldRefs {
     readonly id: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
+    readonly username: FieldRef<"User", 'String'>
     readonly provider: FieldRef<"User", 'Provider'>
   }
     
@@ -6969,6 +6982,7 @@ export namespace Prisma {
   export const UserScalarFieldEnum: {
     id: 'id',
     email: 'email',
+    username: 'username',
     provider: 'provider'
   };
 
@@ -7141,6 +7155,7 @@ export namespace Prisma {
     NOT?: UserWhereInput | UserWhereInput[]
     id?: StringFilter<"User"> | string
     email?: StringNullableFilter<"User"> | string | null
+    username?: StringNullableFilter<"User"> | string | null
     provider?: EnumProviderFilter<"User"> | $Enums.Provider
     streams?: StreamListRelationFilter
     upvote?: UpvoteListRelationFilter
@@ -7151,6 +7166,7 @@ export namespace Prisma {
   export type UserOrderByWithRelationInput = {
     id?: SortOrder
     email?: SortOrderInput | SortOrder
+    username?: SortOrderInput | SortOrder
     provider?: SortOrder
     streams?: StreamOrderByRelationAggregateInput
     upvote?: UpvoteOrderByRelationAggregateInput
@@ -7161,6 +7177,7 @@ export namespace Prisma {
   export type UserWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     email?: string
+    username?: string
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
@@ -7169,11 +7186,12 @@ export namespace Prisma {
     upvote?: UpvoteListRelationFilter
     rooms?: RoomListRelationFilter
     messages?: MessageListRelationFilter
-  }, "id" | "email">
+  }, "id" | "email" | "username">
 
   export type UserOrderByWithAggregationInput = {
     id?: SortOrder
     email?: SortOrderInput | SortOrder
+    username?: SortOrderInput | SortOrder
     provider?: SortOrder
     _count?: UserCountOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
@@ -7186,6 +7204,7 @@ export namespace Prisma {
     NOT?: UserScalarWhereWithAggregatesInput | UserScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"User"> | string
     email?: StringNullableWithAggregatesFilter<"User"> | string | null
+    username?: StringNullableWithAggregatesFilter<"User"> | string | null
     provider?: EnumProviderWithAggregatesFilter<"User"> | $Enums.Provider
   }
 
@@ -7466,6 +7485,7 @@ export namespace Prisma {
   export type UserCreateInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamCreateNestedManyWithoutUserInput
     upvote?: UpvoteCreateNestedManyWithoutUserInput
@@ -7476,6 +7496,7 @@ export namespace Prisma {
   export type UserUncheckedCreateInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamUncheckedCreateNestedManyWithoutUserInput
     upvote?: UpvoteUncheckedCreateNestedManyWithoutUserInput
@@ -7486,6 +7507,7 @@ export namespace Prisma {
   export type UserUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUpdateManyWithoutUserNestedInput
@@ -7496,6 +7518,7 @@ export namespace Prisma {
   export type UserUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUncheckedUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUncheckedUpdateManyWithoutUserNestedInput
@@ -7506,18 +7529,21 @@ export namespace Prisma {
   export type UserCreateManyInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
   }
 
   export type UserUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   }
 
   export type UserUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
   }
 
@@ -7884,18 +7910,21 @@ export namespace Prisma {
   export type UserCountOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    username?: SortOrder
     provider?: SortOrder
   }
 
   export type UserMaxOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    username?: SortOrder
     provider?: SortOrder
   }
 
   export type UserMinOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    username?: SortOrder
     provider?: SortOrder
   }
 
@@ -8943,6 +8972,7 @@ export namespace Prisma {
   export type UserCreateWithoutRoomsInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamCreateNestedManyWithoutUserInput
     upvote?: UpvoteCreateNestedManyWithoutUserInput
@@ -8952,6 +8982,7 @@ export namespace Prisma {
   export type UserUncheckedCreateWithoutRoomsInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamUncheckedCreateNestedManyWithoutUserInput
     upvote?: UpvoteUncheckedCreateNestedManyWithoutUserInput
@@ -9041,6 +9072,7 @@ export namespace Prisma {
   export type UserUpdateWithoutRoomsInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUpdateManyWithoutUserNestedInput
@@ -9050,6 +9082,7 @@ export namespace Prisma {
   export type UserUncheckedUpdateWithoutRoomsInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUncheckedUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUncheckedUpdateManyWithoutUserNestedInput
@@ -9111,6 +9144,7 @@ export namespace Prisma {
   export type UserCreateWithoutStreamsInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     upvote?: UpvoteCreateNestedManyWithoutUserInput
     rooms?: RoomCreateNestedManyWithoutHostInput
@@ -9120,6 +9154,7 @@ export namespace Prisma {
   export type UserUncheckedCreateWithoutStreamsInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     upvote?: UpvoteUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUncheckedCreateNestedManyWithoutHostInput
@@ -9188,6 +9223,7 @@ export namespace Prisma {
   export type UserUpdateWithoutStreamsInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     upvote?: UpvoteUpdateManyWithoutUserNestedInput
     rooms?: RoomUpdateManyWithoutHostNestedInput
@@ -9197,6 +9233,7 @@ export namespace Prisma {
   export type UserUncheckedUpdateWithoutStreamsInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     upvote?: UpvoteUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUncheckedUpdateManyWithoutHostNestedInput
@@ -9239,6 +9276,7 @@ export namespace Prisma {
   export type UserCreateWithoutUpvoteInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamCreateNestedManyWithoutUserInput
     rooms?: RoomCreateNestedManyWithoutHostInput
@@ -9248,6 +9286,7 @@ export namespace Prisma {
   export type UserUncheckedCreateWithoutUpvoteInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUncheckedCreateNestedManyWithoutHostInput
@@ -9308,6 +9347,7 @@ export namespace Prisma {
   export type UserUpdateWithoutUpvoteInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUpdateManyWithoutUserNestedInput
     rooms?: RoomUpdateManyWithoutHostNestedInput
@@ -9317,6 +9357,7 @@ export namespace Prisma {
   export type UserUncheckedUpdateWithoutUpvoteInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUncheckedUpdateManyWithoutHostNestedInput
@@ -9367,6 +9408,7 @@ export namespace Prisma {
   export type UserCreateWithoutMessagesInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamCreateNestedManyWithoutUserInput
     upvote?: UpvoteCreateNestedManyWithoutUserInput
@@ -9376,6 +9418,7 @@ export namespace Prisma {
   export type UserUncheckedCreateWithoutMessagesInput = {
     id?: string
     email?: string | null
+    username?: string | null
     provider: $Enums.Provider
     streams?: StreamUncheckedCreateNestedManyWithoutUserInput
     upvote?: UpvoteUncheckedCreateNestedManyWithoutUserInput
@@ -9428,6 +9471,7 @@ export namespace Prisma {
   export type UserUpdateWithoutMessagesInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUpdateManyWithoutUserNestedInput
@@ -9437,6 +9481,7 @@ export namespace Prisma {
   export type UserUncheckedUpdateWithoutMessagesInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
     provider?: EnumProviderFieldUpdateOperationsInput | $Enums.Provider
     streams?: StreamUncheckedUpdateManyWithoutUserNestedInput
     upvote?: UpvoteUncheckedUpdateManyWithoutUserNestedInput

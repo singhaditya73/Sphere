@@ -10,7 +10,7 @@ export async function GET() {
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { email: true } },
+        user: { select: { email: true, username: true } },
         room: { select: { name: true } },
       }
     });
@@ -20,7 +20,7 @@ export async function GET() {
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
-        host: { select: { email: true } },
+        host: { select: { email: true, username: true } },
       }
     });
 
@@ -29,7 +29,7 @@ export async function GET() {
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { email: true } },
+        user: { select: { email: true, username: true } },
         room: { select: { name: true } },
       }
     });
@@ -48,7 +48,7 @@ export async function GET() {
         events.push({
           id: `stream-${stream.id}`,
           type: "song_added",
-          user: stream.user.email.split("@")[0],
+          user: stream.user.username || stream.user.email.split("@")[0],
           detail: stream.title,
           roomName: stream.room.name,
           time: stream.createdAt.toISOString(),
@@ -61,7 +61,7 @@ export async function GET() {
         events.push({
           id: `room-${room.id}`,
           type: "room_created",
-          user: room.host.email.split("@")[0],
+          user: room.host.username || room.host.email.split("@")[0],
           detail: room.name,
           roomName: room.name,
           time: room.createdAt.toISOString(),
@@ -74,7 +74,7 @@ export async function GET() {
         events.push({
           id: `msg-${msg.id}`,
           type: "chat_message",
-          user: msg.user.email.split("@")[0],
+          user: msg.user.username || msg.user.email.split("@")[0],
           detail: msg.text,
           roomName: msg.room.name,
           time: msg.createdAt.toISOString(),

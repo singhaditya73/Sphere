@@ -3,8 +3,8 @@
 import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { 
-  Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send, 
+import {
+  Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
   QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,85 +90,85 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const updateVolume = (newVolume: number) => {
     setVolume(newVolume);
     if (playerRef.current && playerRef.current.setVolume) {
-        playerRef.current.setVolume(newVolume);
+      playerRef.current.setVolume(newVolume);
     }
   };
 
   useEffect(() => {
     if (!(window as any).YT) {
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-        
-        (window as any).onYouTubeIframeAPIReady = () => {
-             setIsApiReady(true);
-        };
-    } else {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      (window as any).onYouTubeIframeAPIReady = () => {
         setIsApiReady(true);
+      };
+    } else {
+      setIsApiReady(true);
     }
   }, []);
 
   useEffect(() => {
     if (isApiReady && room?.currentStream?.type === 'Youtube' && room.currentStream.extractedId) {
-        if (playerRef.current) {
-            try {
-              if (playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
-                return;
-              }
-              playerRef.current.loadVideoById(room.currentStream.extractedId);
-              playerRef.current.setVolume(volume);
-              setIsPlaying(true);
-              setProgress(0);
-              setDuration(0);
-              return;
-            } catch (e) {
-              playerRef.current = null;
-            }
+      if (playerRef.current) {
+        try {
+          if (playerRef.current.getVideoData && playerRef.current.getVideoData().video_id === room.currentStream.extractedId) {
+            return;
+          }
+          playerRef.current.loadVideoById(room.currentStream.extractedId);
+          playerRef.current.setVolume(volume);
+          setIsPlaying(true);
+          setProgress(0);
+          setDuration(0);
+          return;
+        } catch (e) {
+          playerRef.current = null;
         }
+      }
 
-        const targetEl = document.getElementById('youtube-player');
-        if (!targetEl) return;
+      const targetEl = document.getElementById('youtube-player');
+      if (!targetEl) return;
 
-        playerRef.current = new (window as any).YT.Player('youtube-player', {
-            height: '100%',
-            width: '100%',
-            videoId: room.currentStream.extractedId,
-            playerVars: {
-                'autoplay': 1,
-                'controls': 0,
-                'modestbranding': 1,
-                'enablejsapi': 1,
-                'rel': 0,
-                'origin': typeof window !== 'undefined' ? window.location.origin : ''
-            },
-            events: {
-                'onReady': (event: any) => {
-                    event.target.playVideo();
-                    event.target.setVolume(volume);
-                    event.target.setPlaybackRate(playbackRate);
-                    setIsPlaying(true);
-                    setDuration(event.target.getDuration());
-                },
-                'onStateChange': (event: any) => {
-                        if(event.data === (window as any).YT.PlayerState.PLAYING) setIsPlaying(true);
-                        if(event.data === (window as any).YT.PlayerState.PAUSED) setIsPlaying(false);
-                        if(event.data === (window as any).YT.PlayerState.ENDED) handlePlayNext();
-                }
-            }
-        });
+      playerRef.current = new (window as any).YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: room.currentStream.extractedId,
+        playerVars: {
+          'autoplay': 1,
+          'controls': 0,
+          'modestbranding': 1,
+          'enablejsapi': 1,
+          'rel': 0,
+          'origin': typeof window !== 'undefined' ? window.location.origin : ''
+        },
+        events: {
+          'onReady': (event: any) => {
+            event.target.playVideo();
+            event.target.setVolume(volume);
+            event.target.setPlaybackRate(playbackRate);
+            setIsPlaying(true);
+            setDuration(event.target.getDuration());
+          },
+          'onStateChange': (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.PLAYING) setIsPlaying(true);
+            if (event.data === (window as any).YT.PlayerState.PAUSED) setIsPlaying(false);
+            if (event.data === (window as any).YT.PlayerState.ENDED) handlePlayNext();
+          }
+        }
+      });
     }
   }, [isApiReady, room?.currentStream?.extractedId]);
 
   useEffect(() => {
-     const timer = setInterval(() => {
-        if (playerRef.current && playerRef.current.getCurrentTime) {
-            const time = playerRef.current.getCurrentTime();
-            setProgress(time);
-            if (!duration) setDuration(playerRef.current.getDuration());
-        }
-     }, 500);
-     return () => clearInterval(timer);
+    const timer = setInterval(() => {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        const time = playerRef.current.getCurrentTime();
+        setProgress(time);
+        if (!duration) setDuration(playerRef.current.getDuration());
+      }
+    }, 500);
+    return () => clearInterval(timer);
   }, [duration]);
 
   const fetchRoomData = async () => {
@@ -294,12 +294,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     try {
       const userResponse = await fetch(`/api/user`);
       const userData = await userResponse.json();
-      
+
       if (!userResponse.ok || !userData.user) {
         alert("Failed to get user info");
         return;
       }
-      
+
       const response = await fetch("/api/streams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -326,7 +326,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   const handleUpvote = async (streamId: string, hasUpvoted: boolean) => {
     setUpvotingIds((prev) => new Set(prev).add(streamId));
-    
+
     setMyUpvotedStreamIds((prev) => {
       const newSet = new Set(prev);
       if (hasUpvoted) newSet.delete(streamId);
@@ -373,7 +373,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     try {
       setLoadingNext(true);
       setIsPlaying(false);
-      
+
       const response = await fetch(`/api/rooms/${roomId}/next`, {
         method: "POST",
       });
@@ -402,8 +402,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#090909] p-6 text-center">
         <h1 className="text-lg font-heading font-black">Room not found</h1>
-        <button 
-          className="mt-4 px-5 py-2 rounded-full bg-[#10B981] text-white text-xs font-semibold cursor-pointer" 
+        <button
+          className="mt-4 px-5 py-2 rounded-full bg-[#10B981] text-white text-xs font-semibold cursor-pointer"
           onClick={() => router.push("/dashboard")}
         >
           Back to Dashboard
@@ -453,12 +453,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   return (
     <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-36">
       <Appbar />
- 
+
       <main className="container flex-1 py-24 px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
-        
+
         {/* LEFT & CENTER AREAS (Col-span 8) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          
+
           {/* Top Info section & Active Listeners */}
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -474,15 +474,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   Hosted by <span className="text-[#FAFAFA] font-medium">{room.host.email?.split('@')[0] || "Host"}</span>
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={() => setShowShareModal(true)}
                   className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <QrCode className="w-3.5 h-3.5" /> Invite
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     localStorage.removeItem("sphere_active_room_id");
                     router.push("/dashboard");
@@ -501,8 +501,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               </span>
               <div className="flex -space-x-1.5 overflow-hidden">
                 {listenerEmails.map((email) => (
-                  <div 
-                    key={email} 
+                  <div
+                    key={email}
                     className="inline-block h-6.5 w-6.5 rounded-full ring-2 ring-[#121212] bg-[#10B981]/20 flex items-center justify-center text-[10px] font-bold text-[#10B981] uppercase"
                     title={email}
                   >
@@ -520,10 +520,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
           {/* Now Playing Card (Dynamic Artwork Backdrop Blur) */}
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 relative overflow-hidden flex flex-col gap-6">
-            
+
             {/* Dynamic Backdrop Glow derived from current artwork */}
             {room.currentStream && (
-              <div 
+              <div
                 className="absolute inset-0 bg-cover bg-center opacity-[0.08] blur-[80px] scale-125 pointer-events-none transition-all duration-1000"
                 style={{ backgroundImage: `url(${currentArtworkUrl})` }}
               />
@@ -531,7 +531,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
             {room.currentStream ? (
               <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
-                
+
                 {/* Artwork */}
                 <div className="w-56 h-56 rounded-2xl overflow-hidden bg-black border border-[#27272A] shrink-0 shadow-2xl relative group">
                   <img
@@ -567,7 +567,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
                   {/* Playback Progress */}
                   <div className="space-y-1.5">
-                    <div 
+                    <div
                       className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
                       onClick={(e) => {
                         if (!playerRef.current || !duration) return;
@@ -579,7 +579,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                         setProgress(newTime);
                       }}
                     >
-                      <div 
+                      <div
                         className="absolute top-0 left-0 h-full bg-[#10B981] rounded-full"
                         style={{ width: `${(progress / duration) * 100}%` }}
                       />
@@ -592,12 +592,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
                   {/* Playback Controls & Skip */}
                   <div className="flex items-center gap-3">
-                    <button 
+                    <button
                       onClick={() => {
                         if (playerRef.current) {
-                            if (isPlaying) playerRef.current.pauseVideo();
-                            else playerRef.current.playVideo();
-                            setIsPlaying(!isPlaying);
+                          if (isPlaying) playerRef.current.pauseVideo();
+                          else playerRef.current.playVideo();
+                          setIsPlaying(!isPlaying);
                         }
                       }}
                       className="bg-[#090909] border border-[#27272A] hover:border-[#10B981]/50 text-white h-11 w-11 rounded-full flex items-center justify-center transition-colors cursor-pointer active:scale-95 duration-100"
@@ -605,9 +605,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                       {isPlaying ? <Pause className="h-4 w-4 text-[#10B981]" /> : <Play className="h-4 w-4 ml-0.5 text-[#10B981]" />}
                     </button>
                     {isHost && (
-                      <button 
-                        onClick={handlePlayNext} 
-                        disabled={loadingNext} 
+                      <button
+                        onClick={handlePlayNext}
+                        disabled={loadingNext}
                         className="bg-[#121212] hover:bg-[#18181B] border border-[#27272A] hover:border-[#10B981]/50 text-white h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
                       >
                         {loadingNext ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
@@ -622,8 +622,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 <p className="text-sm font-semibold text-white">No active track playing</p>
                 <p className="text-xs text-[#71717A] mt-1 max-w-xs">Drop a YouTube link below or search for tracks to start the session.</p>
                 {isHost && room.queue.length > 0 && (
-                  <button 
-                    onClick={handlePlayNext} 
+                  <button
+                    onClick={handlePlayNext}
                     className="mt-6 px-6 py-2.5 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold transition-colors cursor-pointer"
                   >
                     Start Broadcasting
@@ -683,9 +683,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   disabled={addingStream}
                   className="flex-1 bg-[#090909] border border-[#27272A] rounded-xl h-10 px-3.5 text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
                 />
-                <button 
-                  type="submit" 
-                  disabled={addingStream || !newStreamUrl.trim()} 
+                <button
+                  type="submit"
+                  disabled={addingStream || !newStreamUrl.trim()}
                   className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-10 text-xs font-bold rounded-xl px-5 transition-colors cursor-pointer"
                 >
                   {addingStream ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : "Add Track"}
@@ -722,11 +722,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                         <span className="text-[10px] font-mono text-[#A1A1AA]/50 w-5 text-center font-bold">
                           {(index + 1).toString().padStart(2, '0')}
                         </span>
-                        
+
                         <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[#27272A]/60 bg-black">
                           <img src={stream.smallImg || `https://img.youtube.com/vi/${stream.extractedId}/default.jpg`} alt="" className="w-full h-full object-cover" />
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-[#FAFAFA] text-sm truncate group-hover:text-[#10B981] transition-colors">
                             {stream.title}
@@ -740,11 +740,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                           whileTap={{ scale: 0.96 }}
                           onClick={() => handleUpvote(stream.id, hasUpvoted)}
                           disabled={upvotingIds.has(stream.id)}
-                          className={`flex items-center gap-1.5 h-8.5 rounded-full px-4 text-xs font-bold transition-all cursor-pointer ${
-                            hasUpvoted 
-                              ? "bg-[#10B981] text-white" 
+                          className={`flex items-center gap-1.5 h-8.5 rounded-full px-4 text-xs font-bold transition-all cursor-pointer ${hasUpvoted
+                              ? "bg-[#10B981] text-white"
                               : "border border-[#27272A] text-[#A1A1AA] hover:text-[#10B981] hover:border-[#10B981]/50 bg-[#090909]/60"
-                          }`}
+                            }`}
                         >
                           <ThumbsUp className={`h-3.5 w-3.5 ${hasUpvoted ? "fill-current" : ""}`} />
                           <span>{stream.upvotes}</span>
@@ -779,13 +778,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 combinedLog.map((log) => {
                   if (log.type === "event") {
                     return (
-                      <div 
-                        key={log.id} 
-                        className={`text-[10px] border rounded-lg py-1.5 px-3 italic flex items-center gap-1.5 ${
-                          log.isHighlight 
-                            ? "bg-[#F59E0B]/5 border-[#F59E0B]/15 text-[#A1A1AA]" 
+                      <div
+                        key={log.id}
+                        className={`text-[10px] border rounded-lg py-1.5 px-3 italic flex items-center gap-1.5 ${log.isHighlight
+                            ? "bg-[#F59E0B]/5 border-[#F59E0B]/15 text-[#A1A1AA]"
                             : "bg-[#10B981]/5 border-[#10B981]/15 text-[#A1A1AA]"
-                        }`}
+                          }`}
                       >
                         <Sparkles className={`w-3 h-3 ${log.isHighlight ? "text-[#F59E0B]" : "text-[#10B981]"}`} />
                         <span>
@@ -854,7 +852,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
             {/* Waveform / Slider */}
             <div className="hidden md:flex flex-col items-center gap-1.5 flex-[2] max-w-md">
-              <div 
+              <div
                 className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
                 onClick={(e) => {
                   if (!playerRef.current || !duration) return;
@@ -866,7 +864,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   setProgress(newTime);
                 }}
               >
-                <div 
+                <div
                   className="absolute top-0 left-0 h-full bg-[#10B981] rounded-full"
                   style={{ width: `${(progress / duration) * 100}%` }}
                 />
@@ -879,12 +877,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
             {/* Play/Pause controls */}
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => {
                   if (playerRef.current) {
-                      if (isPlaying) playerRef.current.pauseVideo();
-                      else playerRef.current.playVideo();
-                      setIsPlaying(!isPlaying);
+                    if (isPlaying) playerRef.current.pauseVideo();
+                    else playerRef.current.playVideo();
+                    setIsPlaying(!isPlaying);
                   }
                 }}
                 className="bg-[#090909] hover:bg-[#18181B] border border-[#27272A] h-8 w-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
@@ -892,15 +890,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 {isPlaying ? <Pause className="h-3.5 w-3.5 text-[#10B981]" /> : <Play className="h-3.5 w-3.5 ml-0.5 text-[#10B981]" />}
               </button>
               {isHost && (
-                <button 
-                  onClick={handlePlayNext} 
-                  disabled={loadingNext} 
+                <button
+                  onClick={handlePlayNext}
+                  disabled={loadingNext}
                   className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
                 >
                   {loadingNext ? <Loader2 className="h-3.5 h-3.5 animate-spin" /> : <SkipForward className="h-3.5 h-3.5" />}
                 </button>
               )}
-              
+
               <div className="hidden sm:flex items-center gap-2 border-l border-[#27272A]/80 pl-4 ml-2">
                 <Volume2 className="h-3.5 w-3.5 text-[#A1A1AA]" />
                 <input
