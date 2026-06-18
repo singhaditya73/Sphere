@@ -775,9 +775,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                             size="sm"
                             onClick={() => handleUpvote(stream.id, hasUpvoted)}
                             disabled={upvotingIds.has(stream.id)}
-                            className={`gap-2 h-10 rounded-full ${hasUpvoted ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-primary hover:border-primary"}`}
+                            className={`gap-2 h-10 rounded-full transition-all duration-200 ${
+                              hasUpvoted 
+                                ? "bg-blue-500 text-white hover:bg-blue-600 scale-105" 
+                                : "border border-border text-muted-foreground hover:text-blue-500 hover:border-blue-500"
+                            }`}
                          >
-                            <ThumbsUp className={`h-4 w-4 ${hasUpvoted ? "fill-current" : ""}`} />
+                            <ThumbsUp className={`h-4 w-4 transition-transform ${hasUpvoted ? "fill-current scale-110" : ""}`} />
                             <span className="font-bold">{stream.upvotes}</span>
                          </Button>
                      </motion.div>

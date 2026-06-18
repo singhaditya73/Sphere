@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { isRoomCode } from "@/lib/room-code";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -112,6 +113,19 @@ export async function POST(req: NextRequest) {
       bigImg = "";
     }
 
+    // Resolve room code to actual database ID
+    let resolvedRoomId = data.roomId;
+    if (isRoomCode(data.roomId)) {
+      const room = await prismaClient.room.findFirst({
+        where: { code: data.roomId.toUpperCase(), isActive: true },
+        select: { id: true },
+      });
+      if (!room) {
+        return NextResponse.json({ message: "Room not found" }, { status: 404 });
+      }
+      resolvedRoomId = room.id;
+    }
+
     const stream = await prismaClient.stream.create({
       data: {
         userId: data.creatorId,
@@ -121,7 +135,7 @@ export async function POST(req: NextRequest) {
         title,
         smallImg,
         bigImg,
-        roomId: data.roomId,
+        roomId: resolvedRoomId,
       },
     });
 

@@ -1,4 +1,5 @@
 import { prismaClient } from "@/lib/db";
+import { isRoomCode } from "@/lib/room-code";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
@@ -8,6 +9,20 @@ const SendMessageSchema = z.object({
   text: z.string().min(1).max(500),
 });
 
+// Resolve roomId param (could be code like BEAT-XXXX or actual cuid)
+async function resolveRoomId(roomIdParam: string): Promise<string | null> {
+  const whereClause = isRoomCode(roomIdParam)
+    ? { code: roomIdParam.toUpperCase(), isActive: true }
+    : { id: roomIdParam, isActive: true };
+
+  const room = await prismaClient.room.findFirst({
+    where: whereClause,
+    select: { id: true },
+  });
+
+  return room?.id ?? null;
+}
+
 // Get messages for a room (last 50)
 export async function GET(
   req: NextRequest,
@@ -15,7 +30,11 @@ export async function GET(
 ) {
   try {
     const params = await props.params;
-    const roomId = params.roomId;
+    const roomId = await resolveRoomId(params.roomId);
+
+    if (!roomId) {
+      return NextResponse.json({ message: "Room not found" }, { status: 404 });
+    }
 
     const messages = await prismaClient.message.findMany({
       where: { roomId },
@@ -66,7 +85,11 @@ export async function POST(
     }
 
     const params = await props.params;
-    const roomId = params.roomId;
+    const roomId = await resolveRoomId(params.roomId);
+
+    if (!roomId) {
+      return NextResponse.json({ message: "Room not found" }, { status: 404 });
+    }
 
     const body = await req.json();
     const data = SendMessageSchema.parse(body);
