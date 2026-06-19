@@ -265,6 +265,7 @@ export async function GET(req: NextRequest) {
         user: {
           select: {
             email: true,
+            username: true,
           },
         },
       },
@@ -292,6 +293,7 @@ export async function GET(req: NextRequest) {
         bigImg: stream.bigImg,
         upvotes: stream._count.upvotes,
         addedBy: stream.user.email,
+        addedByUsername: stream.user.username,
         active: stream.active,
       })),
     });

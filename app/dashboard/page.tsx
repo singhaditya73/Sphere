@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Appbar } from "@/components/Appbar";
-import { Loader2, Plus, Disc, Radio, Users, ChevronRight, Trash2, LogOut } from "lucide-react";
+import { UsernameModal } from "@/components/UsernameModal";
+import { Loader2, Plus, Disc, Radio, Users, ChevronRight, Trash2, LogOut, Headphones, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Room {
   id: string;
   name: string;
+  mode: "dj" | "listen_together";
   hostEmail: string;
   streamCount: number;
   createdAt: string;
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [creatingRoom, setCreatingRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
+  const [roomMode, setRoomMode] = useState<"dj" | "listen_together">("dj");
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
@@ -100,7 +103,7 @@ export default function DashboardPage() {
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newRoomName }),
+        body: JSON.stringify({ name: newRoomName, mode: roomMode }),
       });
 
       const text = await response.text();
@@ -115,6 +118,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setNewRoomName("");
+        setRoomMode("dj");
         setShowCreateForm(false);
         router.push(`/room/${data.room.id}`);
       } else {
@@ -139,6 +143,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-24">
       <Appbar />
+      <UsernameModal />
 
       <main className="container max-w-5xl mx-auto flex-1 py-28 px-6">
         {/* Header Section */}
@@ -195,6 +200,43 @@ export default function DashboardPage() {
                       className="w-full bg-[#090909] border border-[#27272A] text-white text-xs h-10 px-3.5 rounded-xl placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
                     />
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider mb-2">
+                      Room Mode
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRoomMode("dj")}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          roomMode === "dj"
+                            ? "border-[#10B981]/50 bg-[#10B981]/5"
+                            : "border-[#27272A] bg-[#090909] hover:bg-[#18181B]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Headphones className={`w-3.5 h-3.5 ${roomMode === "dj" ? "text-[#10B981]" : "text-[#A1A1AA]"}`} />
+                          <span className={`text-xs font-bold ${roomMode === "dj" ? "text-[#10B981]" : "text-[#FAFAFA]"}`}>DJ Mode</span>
+                        </div>
+                        <p className="text-[9px] text-[#71717A] leading-relaxed">Play at your party. Guests vote on the queue.</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRoomMode("listen_together")}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          roomMode === "listen_together"
+                            ? "border-[#10B981]/50 bg-[#10B981]/5"
+                            : "border-[#27272A] bg-[#090909] hover:bg-[#18181B]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Globe className={`w-3.5 h-3.5 ${roomMode === "listen_together" ? "text-[#10B981]" : "text-[#A1A1AA]"}`} />
+                          <span className={`text-xs font-bold ${roomMode === "listen_together" ? "text-[#10B981]" : "text-[#FAFAFA]"}`}>Listen Together</span>
+                        </div>
+                        <p className="text-[9px] text-[#71717A] leading-relaxed">Listen in sync with friends remotely.</p>
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -208,6 +250,7 @@ export default function DashboardPage() {
                       onClick={() => {
                         setShowCreateForm(false);
                         setNewRoomName("");
+                        setRoomMode("dj");
                       }}
                       className="border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#18181B] h-9 text-xs font-bold px-4 rounded-xl transition-colors cursor-pointer"
                     >
@@ -269,8 +312,17 @@ export default function DashboardPage() {
                                 Room Code: <span className="font-mono text-white font-bold">{room.id.substring(0, 8).toUpperCase()}</span>
                               </p>
                             </div>
-                            <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center shrink-0">
-                              <Disc className="w-4 h-4 text-[#10B981] spin-slow group-hover:scale-110 transition-transform" />
+                            <div className="flex flex-col items-end gap-1.5">
+                              <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center shrink-0">
+                                <Disc className="w-4 h-4 text-[#10B981] spin-slow group-hover:scale-110 transition-transform" />
+                              </div>
+                              <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                                room.mode === "listen_together"
+                                  ? "text-[#818CF8] bg-[#818CF8]/10 border-[#818CF8]/20"
+                                  : "text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20"
+                              }`}>
+                                {room.mode === "listen_together" ? "Sync" : "DJ"}
+                              </span>
                             </div>
                           </div>
 

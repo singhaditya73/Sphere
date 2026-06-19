@@ -18,6 +18,11 @@ enum Provider {
   Google
 }
 
+enum RoomMode {
+  dj
+  listen_together
+}
+
 enum StreamType {
   Spotify
   Youtube
@@ -35,16 +40,20 @@ model User {
 }
 
 model Room {
-  id              String    @id @default(cuid())
-  code            String    @unique // Short shareable code like BEAT-K7M2
-  name            String
-  hostId          String
-  host            User      @relation(fields: [hostId], references: [id])
-  streams         Stream[]
-  messages        Message[]
-  currentStreamId String?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
+  id                String    @id @default(cuid())
+  code              String    @unique // Short shareable code like BEAT-K7M2
+  name              String
+  mode              RoomMode  @default(dj)
+  hostId            String
+  host              User      @relation(fields: [hostId], references: [id])
+  streams           Stream[]
+  messages          Message[]
+  currentStreamId   String?
+  isActive          Boolean   @default(true)
+  isPlaying         Boolean   @default(false)
+  playbackPosition  Float     @default(0)
+  playbackStartedAt DateTime?
+  createdAt         DateTime  @default(now())
 }
 
 model Stream {

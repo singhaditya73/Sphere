@@ -82,7 +82,12 @@ export async function POST(
       // No more songs in queue
       await prismaClient.room.update({
         where: { id: roomId },
-        data: { currentStreamId: null },
+        data: {
+          currentStreamId: null,
+          isPlaying: false,
+          playbackPosition: 0,
+          playbackStartedAt: null,
+        },
       });
 
       return NextResponse.json({
@@ -94,7 +99,12 @@ export async function POST(
     // Set as currently playing
     await prismaClient.room.update({
       where: { id: roomId },
-      data: { currentStreamId: nextStream.id },
+      data: {
+        currentStreamId: nextStream.id,
+        isPlaying: true,
+        playbackPosition: 0,
+        playbackStartedAt: new Date(),
+      },
     });
 
     await prismaClient.stream.update({

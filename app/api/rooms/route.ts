@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const CreateRoomSchema = z.object({
   name: z.string().min(1).max(100),
+  mode: z.enum(["dj", "listen_together"]).default("dj"),
 });
 
 // Create a new room
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
     const room = await prismaClient.room.create({
       data: {
         name: data.name,
+        mode: data.mode,
         code: code,
         hostId: user.id,
       },
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
         id: room.id,
         code: room.code,
         name: room.name,
+        mode: room.mode,
         hostId: room.hostId,
       },
     }, { status: 200 });
@@ -133,6 +136,7 @@ export async function GET() {
       rooms: rooms.map((room) => ({
         id: room.id,
         name: room.name,
+        mode: room.mode,
         hostEmail: room.host.email,
         streamCount: room.streams.length,
         createdAt: room.createdAt,

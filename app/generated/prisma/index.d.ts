@@ -50,6 +50,14 @@ export namespace $Enums {
 export type Provider = (typeof Provider)[keyof typeof Provider]
 
 
+export const RoomMode: {
+  dj: 'dj',
+  listen_together: 'listen_together'
+};
+
+export type RoomMode = (typeof RoomMode)[keyof typeof RoomMode]
+
+
 export const StreamType: {
   Spotify: 'Spotify',
   Youtube: 'Youtube'
@@ -62,6 +70,10 @@ export type StreamType = (typeof StreamType)[keyof typeof StreamType]
 export type Provider = $Enums.Provider
 
 export const Provider: typeof $Enums.Provider
+
+export type RoomMode = $Enums.RoomMode
+
+export const RoomMode: typeof $Enums.RoomMode
 
 export type StreamType = $Enums.StreamType
 
@@ -2536,17 +2548,31 @@ export namespace Prisma {
 
   export type AggregateRoom = {
     _count: RoomCountAggregateOutputType | null
+    _avg: RoomAvgAggregateOutputType | null
+    _sum: RoomSumAggregateOutputType | null
     _min: RoomMinAggregateOutputType | null
     _max: RoomMaxAggregateOutputType | null
+  }
+
+  export type RoomAvgAggregateOutputType = {
+    playbackPosition: number | null
+  }
+
+  export type RoomSumAggregateOutputType = {
+    playbackPosition: number | null
   }
 
   export type RoomMinAggregateOutputType = {
     id: string | null
     code: string | null
     name: string | null
+    mode: $Enums.RoomMode | null
     hostId: string | null
     currentStreamId: string | null
     isActive: boolean | null
+    isPlaying: boolean | null
+    playbackPosition: number | null
+    playbackStartedAt: Date | null
     createdAt: Date | null
   }
 
@@ -2554,9 +2580,13 @@ export namespace Prisma {
     id: string | null
     code: string | null
     name: string | null
+    mode: $Enums.RoomMode | null
     hostId: string | null
     currentStreamId: string | null
     isActive: boolean | null
+    isPlaying: boolean | null
+    playbackPosition: number | null
+    playbackStartedAt: Date | null
     createdAt: Date | null
   }
 
@@ -2564,21 +2594,37 @@ export namespace Prisma {
     id: number
     code: number
     name: number
+    mode: number
     hostId: number
     currentStreamId: number
     isActive: number
+    isPlaying: number
+    playbackPosition: number
+    playbackStartedAt: number
     createdAt: number
     _all: number
   }
 
 
+  export type RoomAvgAggregateInputType = {
+    playbackPosition?: true
+  }
+
+  export type RoomSumAggregateInputType = {
+    playbackPosition?: true
+  }
+
   export type RoomMinAggregateInputType = {
     id?: true
     code?: true
     name?: true
+    mode?: true
     hostId?: true
     currentStreamId?: true
     isActive?: true
+    isPlaying?: true
+    playbackPosition?: true
+    playbackStartedAt?: true
     createdAt?: true
   }
 
@@ -2586,9 +2632,13 @@ export namespace Prisma {
     id?: true
     code?: true
     name?: true
+    mode?: true
     hostId?: true
     currentStreamId?: true
     isActive?: true
+    isPlaying?: true
+    playbackPosition?: true
+    playbackStartedAt?: true
     createdAt?: true
   }
 
@@ -2596,9 +2646,13 @@ export namespace Prisma {
     id?: true
     code?: true
     name?: true
+    mode?: true
     hostId?: true
     currentStreamId?: true
     isActive?: true
+    isPlaying?: true
+    playbackPosition?: true
+    playbackStartedAt?: true
     createdAt?: true
     _all?: true
   }
@@ -2641,6 +2695,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: RoomAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RoomSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: RoomMinAggregateInputType
@@ -2671,6 +2737,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: RoomCountAggregateInputType | true
+    _avg?: RoomAvgAggregateInputType
+    _sum?: RoomSumAggregateInputType
     _min?: RoomMinAggregateInputType
     _max?: RoomMaxAggregateInputType
   }
@@ -2679,11 +2747,17 @@ export namespace Prisma {
     id: string
     code: string
     name: string
+    mode: $Enums.RoomMode
     hostId: string
     currentStreamId: string | null
     isActive: boolean
+    isPlaying: boolean
+    playbackPosition: number
+    playbackStartedAt: Date | null
     createdAt: Date
     _count: RoomCountAggregateOutputType | null
+    _avg: RoomAvgAggregateOutputType | null
+    _sum: RoomSumAggregateOutputType | null
     _min: RoomMinAggregateOutputType | null
     _max: RoomMaxAggregateOutputType | null
   }
@@ -2706,9 +2780,13 @@ export namespace Prisma {
     id?: boolean
     code?: boolean
     name?: boolean
+    mode?: boolean
     hostId?: boolean
     currentStreamId?: boolean
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: boolean
+    playbackStartedAt?: boolean
     createdAt?: boolean
     host?: boolean | UserDefaultArgs<ExtArgs>
     streams?: boolean | Room$streamsArgs<ExtArgs>
@@ -2720,9 +2798,13 @@ export namespace Prisma {
     id?: boolean
     code?: boolean
     name?: boolean
+    mode?: boolean
     hostId?: boolean
     currentStreamId?: boolean
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: boolean
+    playbackStartedAt?: boolean
     createdAt?: boolean
     host?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["room"]>
@@ -2731,9 +2813,13 @@ export namespace Prisma {
     id?: boolean
     code?: boolean
     name?: boolean
+    mode?: boolean
     hostId?: boolean
     currentStreamId?: boolean
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: boolean
+    playbackStartedAt?: boolean
     createdAt?: boolean
     host?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["room"]>
@@ -2742,13 +2828,17 @@ export namespace Prisma {
     id?: boolean
     code?: boolean
     name?: boolean
+    mode?: boolean
     hostId?: boolean
     currentStreamId?: boolean
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: boolean
+    playbackStartedAt?: boolean
     createdAt?: boolean
   }
 
-  export type RoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "hostId" | "currentStreamId" | "isActive" | "createdAt", ExtArgs["result"]["room"]>
+  export type RoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "name" | "mode" | "hostId" | "currentStreamId" | "isActive" | "isPlaying" | "playbackPosition" | "playbackStartedAt" | "createdAt", ExtArgs["result"]["room"]>
   export type RoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     host?: boolean | UserDefaultArgs<ExtArgs>
     streams?: boolean | Room$streamsArgs<ExtArgs>
@@ -2773,9 +2863,13 @@ export namespace Prisma {
       id: string
       code: string
       name: string
+      mode: $Enums.RoomMode
       hostId: string
       currentStreamId: string | null
       isActive: boolean
+      isPlaying: boolean
+      playbackPosition: number
+      playbackStartedAt: Date | null
       createdAt: Date
     }, ExtArgs["result"]["room"]>
     composites: {}
@@ -3206,9 +3300,13 @@ export namespace Prisma {
     readonly id: FieldRef<"Room", 'String'>
     readonly code: FieldRef<"Room", 'String'>
     readonly name: FieldRef<"Room", 'String'>
+    readonly mode: FieldRef<"Room", 'RoomMode'>
     readonly hostId: FieldRef<"Room", 'String'>
     readonly currentStreamId: FieldRef<"Room", 'String'>
     readonly isActive: FieldRef<"Room", 'Boolean'>
+    readonly isPlaying: FieldRef<"Room", 'Boolean'>
+    readonly playbackPosition: FieldRef<"Room", 'Float'>
+    readonly playbackStartedAt: FieldRef<"Room", 'DateTime'>
     readonly createdAt: FieldRef<"Room", 'DateTime'>
   }
     
@@ -6993,9 +7091,13 @@ export namespace Prisma {
     id: 'id',
     code: 'code',
     name: 'name',
+    mode: 'mode',
     hostId: 'hostId',
     currentStreamId: 'currentStreamId',
     isActive: 'isActive',
+    isPlaying: 'isPlaying',
+    playbackPosition: 'playbackPosition',
+    playbackStartedAt: 'playbackStartedAt',
     createdAt: 'createdAt'
   };
 
@@ -7098,9 +7200,37 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'RoomMode'
+   */
+  export type EnumRoomModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoomMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'RoomMode[]'
+   */
+  export type ListEnumRoomModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoomMode[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 
@@ -7215,9 +7345,13 @@ export namespace Prisma {
     id?: StringFilter<"Room"> | string
     code?: StringFilter<"Room"> | string
     name?: StringFilter<"Room"> | string
+    mode?: EnumRoomModeFilter<"Room"> | $Enums.RoomMode
     hostId?: StringFilter<"Room"> | string
     currentStreamId?: StringNullableFilter<"Room"> | string | null
     isActive?: BoolFilter<"Room"> | boolean
+    isPlaying?: BoolFilter<"Room"> | boolean
+    playbackPosition?: FloatFilter<"Room"> | number
+    playbackStartedAt?: DateTimeNullableFilter<"Room"> | Date | string | null
     createdAt?: DateTimeFilter<"Room"> | Date | string
     host?: XOR<UserScalarRelationFilter, UserWhereInput>
     streams?: StreamListRelationFilter
@@ -7228,9 +7362,13 @@ export namespace Prisma {
     id?: SortOrder
     code?: SortOrder
     name?: SortOrder
+    mode?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrderInput | SortOrder
     isActive?: SortOrder
+    isPlaying?: SortOrder
+    playbackPosition?: SortOrder
+    playbackStartedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     host?: UserOrderByWithRelationInput
     streams?: StreamOrderByRelationAggregateInput
@@ -7244,9 +7382,13 @@ export namespace Prisma {
     OR?: RoomWhereInput[]
     NOT?: RoomWhereInput | RoomWhereInput[]
     name?: StringFilter<"Room"> | string
+    mode?: EnumRoomModeFilter<"Room"> | $Enums.RoomMode
     hostId?: StringFilter<"Room"> | string
     currentStreamId?: StringNullableFilter<"Room"> | string | null
     isActive?: BoolFilter<"Room"> | boolean
+    isPlaying?: BoolFilter<"Room"> | boolean
+    playbackPosition?: FloatFilter<"Room"> | number
+    playbackStartedAt?: DateTimeNullableFilter<"Room"> | Date | string | null
     createdAt?: DateTimeFilter<"Room"> | Date | string
     host?: XOR<UserScalarRelationFilter, UserWhereInput>
     streams?: StreamListRelationFilter
@@ -7257,13 +7399,19 @@ export namespace Prisma {
     id?: SortOrder
     code?: SortOrder
     name?: SortOrder
+    mode?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrderInput | SortOrder
     isActive?: SortOrder
+    isPlaying?: SortOrder
+    playbackPosition?: SortOrder
+    playbackStartedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: RoomCountOrderByAggregateInput
+    _avg?: RoomAvgOrderByAggregateInput
     _max?: RoomMaxOrderByAggregateInput
     _min?: RoomMinOrderByAggregateInput
+    _sum?: RoomSumOrderByAggregateInput
   }
 
   export type RoomScalarWhereWithAggregatesInput = {
@@ -7273,9 +7421,13 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Room"> | string
     code?: StringWithAggregatesFilter<"Room"> | string
     name?: StringWithAggregatesFilter<"Room"> | string
+    mode?: EnumRoomModeWithAggregatesFilter<"Room"> | $Enums.RoomMode
     hostId?: StringWithAggregatesFilter<"Room"> | string
     currentStreamId?: StringNullableWithAggregatesFilter<"Room"> | string | null
     isActive?: BoolWithAggregatesFilter<"Room"> | boolean
+    isPlaying?: BoolWithAggregatesFilter<"Room"> | boolean
+    playbackPosition?: FloatWithAggregatesFilter<"Room"> | number
+    playbackStartedAt?: DateTimeNullableWithAggregatesFilter<"Room"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Room"> | Date | string
   }
 
@@ -7551,8 +7703,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     host: UserCreateNestedOneWithoutRoomsInput
     streams?: StreamCreateNestedManyWithoutRoomInput
@@ -7563,9 +7719,13 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     hostId: string
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     streams?: StreamUncheckedCreateNestedManyWithoutRoomInput
     messages?: MessageUncheckedCreateNestedManyWithoutRoomInput
@@ -7575,8 +7735,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     host?: UserUpdateOneRequiredWithoutRoomsNestedInput
     streams?: StreamUpdateManyWithoutRoomNestedInput
@@ -7587,9 +7751,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     streams?: StreamUncheckedUpdateManyWithoutRoomNestedInput
     messages?: MessageUncheckedUpdateManyWithoutRoomNestedInput
@@ -7599,9 +7767,13 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     hostId: string
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -7609,8 +7781,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7618,9 +7794,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7974,9 +8154,38 @@ export namespace Prisma {
     _max?: NestedEnumProviderFilter<$PrismaModel>
   }
 
+  export type EnumRoomModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoomMode | EnumRoomModeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoomModeFilter<$PrismaModel> | $Enums.RoomMode
+  }
+
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type DateTimeFilter<$PrismaModel = never> = {
@@ -7999,19 +8208,31 @@ export namespace Prisma {
     id?: SortOrder
     code?: SortOrder
     name?: SortOrder
+    mode?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
     isActive?: SortOrder
+    isPlaying?: SortOrder
+    playbackPosition?: SortOrder
+    playbackStartedAt?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type RoomAvgOrderByAggregateInput = {
+    playbackPosition?: SortOrder
   }
 
   export type RoomMaxOrderByAggregateInput = {
     id?: SortOrder
     code?: SortOrder
     name?: SortOrder
+    mode?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
     isActive?: SortOrder
+    isPlaying?: SortOrder
+    playbackPosition?: SortOrder
+    playbackStartedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -8019,10 +8240,28 @@ export namespace Prisma {
     id?: SortOrder
     code?: SortOrder
     name?: SortOrder
+    mode?: SortOrder
     hostId?: SortOrder
     currentStreamId?: SortOrder
     isActive?: SortOrder
+    isPlaying?: SortOrder
+    playbackPosition?: SortOrder
+    playbackStartedAt?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type RoomSumOrderByAggregateInput = {
+    playbackPosition?: SortOrder
+  }
+
+  export type EnumRoomModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoomMode | EnumRoomModeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoomModeWithAggregatesFilter<$PrismaModel> | $Enums.RoomMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoomModeFilter<$PrismaModel>
+    _max?: NestedEnumRoomModeFilter<$PrismaModel>
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -8031,6 +8270,36 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -8380,8 +8649,24 @@ export namespace Prisma {
     connect?: MessageWhereUniqueInput | MessageWhereUniqueInput[]
   }
 
+  export type EnumRoomModeFieldUpdateOperationsInput = {
+    set?: $Enums.RoomMode
+  }
+
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -8683,9 +8968,38 @@ export namespace Prisma {
     _max?: NestedEnumProviderFilter<$PrismaModel>
   }
 
+  export type NestedEnumRoomModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoomMode | EnumRoomModeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoomModeFilter<$PrismaModel> | $Enums.RoomMode
+  }
+
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -8699,12 +9013,52 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type NestedEnumRoomModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.RoomMode | EnumRoomModeFieldRefInput<$PrismaModel>
+    in?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.RoomMode[] | ListEnumRoomModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumRoomModeWithAggregatesFilter<$PrismaModel> | $Enums.RoomMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumRoomModeFilter<$PrismaModel>
+    _max?: NestedEnumRoomModeFilter<$PrismaModel>
+  }
+
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -8802,8 +9156,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     streams?: StreamCreateNestedManyWithoutRoomInput
     messages?: MessageCreateNestedManyWithoutRoomInput
@@ -8813,8 +9171,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     streams?: StreamUncheckedCreateNestedManyWithoutRoomInput
     messages?: MessageUncheckedCreateNestedManyWithoutRoomInput
@@ -8936,9 +9298,13 @@ export namespace Prisma {
     id?: StringFilter<"Room"> | string
     code?: StringFilter<"Room"> | string
     name?: StringFilter<"Room"> | string
+    mode?: EnumRoomModeFilter<"Room"> | $Enums.RoomMode
     hostId?: StringFilter<"Room"> | string
     currentStreamId?: StringNullableFilter<"Room"> | string | null
     isActive?: BoolFilter<"Room"> | boolean
+    isPlaying?: BoolFilter<"Room"> | boolean
+    playbackPosition?: FloatFilter<"Room"> | number
+    playbackStartedAt?: DateTimeNullableFilter<"Room"> | Date | string | null
     createdAt?: DateTimeFilter<"Room"> | Date | string
   }
 
@@ -9170,8 +9536,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     host: UserCreateNestedOneWithoutRoomsInput
     messages?: MessageCreateNestedManyWithoutRoomInput
@@ -9181,9 +9551,13 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     hostId: string
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     messages?: MessageUncheckedCreateNestedManyWithoutRoomInput
   }
@@ -9255,8 +9629,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     host?: UserUpdateOneRequiredWithoutRoomsNestedInput
     messages?: MessageUpdateManyWithoutRoomNestedInput
@@ -9266,9 +9644,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     messages?: MessageUncheckedUpdateManyWithoutRoomNestedInput
   }
@@ -9434,8 +9816,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     host: UserCreateNestedOneWithoutRoomsInput
     streams?: StreamCreateNestedManyWithoutRoomInput
@@ -9445,9 +9831,13 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     hostId: string
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
     streams?: StreamUncheckedCreateNestedManyWithoutRoomInput
   }
@@ -9503,8 +9893,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     host?: UserUpdateOneRequiredWithoutRoomsNestedInput
     streams?: StreamUpdateManyWithoutRoomNestedInput
@@ -9514,9 +9908,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     hostId?: StringFieldUpdateOperationsInput | string
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     streams?: StreamUncheckedUpdateManyWithoutRoomNestedInput
   }
@@ -9544,8 +9942,12 @@ export namespace Prisma {
     id?: string
     code: string
     name: string
+    mode?: $Enums.RoomMode
     currentStreamId?: string | null
     isActive?: boolean
+    isPlaying?: boolean
+    playbackPosition?: number
+    playbackStartedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -9619,8 +10021,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     streams?: StreamUpdateManyWithoutRoomNestedInput
     messages?: MessageUpdateManyWithoutRoomNestedInput
@@ -9630,8 +10036,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     streams?: StreamUncheckedUpdateManyWithoutRoomNestedInput
     messages?: MessageUncheckedUpdateManyWithoutRoomNestedInput
@@ -9641,8 +10051,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     code?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    mode?: EnumRoomModeFieldUpdateOperationsInput | $Enums.RoomMode
     currentStreamId?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isPlaying?: BoolFieldUpdateOperationsInput | boolean
+    playbackPosition?: FloatFieldUpdateOperationsInput | number
+    playbackStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

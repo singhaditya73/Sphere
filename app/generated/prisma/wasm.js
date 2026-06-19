@@ -128,9 +128,13 @@ exports.Prisma.RoomScalarFieldEnum = {
   id: 'id',
   code: 'code',
   name: 'name',
+  mode: 'mode',
   hostId: 'hostId',
   currentStreamId: 'currentStreamId',
   isActive: 'isActive',
+  isPlaying: 'isPlaying',
+  playbackPosition: 'playbackPosition',
+  playbackStartedAt: 'playbackStartedAt',
   createdAt: 'createdAt'
 };
 
@@ -179,6 +183,11 @@ exports.Prisma.NullsOrder = {
 };
 exports.Provider = exports.$Enums.Provider = {
   Google: 'Google'
+};
+
+exports.RoomMode = exports.$Enums.RoomMode = {
+  dj: 'dj',
+  listen_together: 'listen_together'
 };
 
 exports.StreamType = exports.$Enums.StreamType = {

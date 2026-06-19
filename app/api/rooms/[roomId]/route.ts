@@ -25,6 +25,7 @@ export async function GET(
           select: {
             id: true,
             email: true,
+            username: true,
           },
         },
         streams: {
@@ -40,6 +41,7 @@ export async function GET(
             user: {
               select: {
                 email: true,
+                username: true,
               },
             },
           },
@@ -76,6 +78,7 @@ export async function GET(
           user: {
             select: {
               email: true,
+              username: true,
             },
           },
         },
@@ -87,8 +90,12 @@ export async function GET(
         id: room.id,
         code: room.code,
         name: room.name,
+        mode: room.mode,
         host: room.host,
         currentStream,
+        isPlaying: room.isPlaying,
+        playbackPosition: room.playbackPosition,
+        playbackStartedAt: room.playbackStartedAt?.toISOString() ?? null,
         queue: sortedStreams.map((stream) => ({
           id: stream.id,
           type: stream.type,
@@ -98,6 +105,7 @@ export async function GET(
           bigImg: stream.bigImg,
           upvotes: stream._count.upvotes,
           addedBy: stream.user.email,
+          addedByUsername: stream.user.username,
           createdAt: stream.createdAt,
         })),
       },

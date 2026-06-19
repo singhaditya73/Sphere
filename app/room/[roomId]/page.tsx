@@ -5,15 +5,17 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
-  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2
+  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
+import { UsernameModal } from "@/components/UsernameModal";
 
 interface ChatMessage {
   id: string;
   text: string;
   userEmail: string;
+  username: string | null;
   createdAt: string;
 }
 
@@ -36,6 +38,7 @@ interface Stream {
   bigImg: string;
   upvotes: number;
   addedBy: string;
+  addedByUsername: string | null;
   createdAt: string;
 }
 
@@ -43,12 +46,17 @@ interface Room {
   id: string;
   code: string;
   name: string;
+  mode: "dj" | "listen_together";
   host: {
     id: string;
     email: string;
+    username: string | null;
   };
   currentStream: Stream | null;
   queue: Stream[];
+  isPlaying: boolean;
+  playbackPosition: number;
+  playbackStartedAt: string | null;
 }
 
 export default function RoomPage({ params }: { params: Promise<{ roomId: string }> }) {
@@ -205,15 +213,67 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   }, [room?.currentStream?.extractedId, room?.name, isHost]);
 
   useEffect(() => {
+    const isListenTogether = room?.mode === "listen_together";
     const timer = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
-        const time = playerRef.current.getCurrentTime();
-        setProgress(time);
+        if (isListenTogether && room) {
+          // In Listen Together mode, compute position from server clock
+          let serverPos = room.playbackPosition;
+          if (room.isPlaying && room.playbackStartedAt) {
+            const elapsed = (Date.now() - new Date(room.playbackStartedAt).getTime()) / 1000;
+            serverPos = room.playbackPosition + elapsed;
+          }
+          setProgress(serverPos);
+        } else {
+          const time = playerRef.current.getCurrentTime();
+          setProgress(time);
+        }
         if (!duration) setDuration(playerRef.current.getDuration());
       }
     }, 500);
     return () => clearInterval(timer);
-  }, [duration]);
+  }, [duration, room?.mode, room?.isPlaying, room?.playbackPosition, room?.playbackStartedAt]);
+
+  // Sync player to server state for Listen Together mode
+  useEffect(() => {
+    if (room?.mode !== "listen_together" || !playerRef.current) return;
+
+    try {
+      // Sync play/pause state
+      const playerState = playerRef.current.getPlayerState?.();
+      const YT = (window as any).YT;
+      if (!YT) return;
+
+      if (room.isPlaying) {
+        // Server says playing
+        if (playerState === YT.PlayerState.PAUSED || playerState === YT.PlayerState.CUED) {
+          playerRef.current.playVideo();
+        }
+        // Check position drift
+        if (room.playbackStartedAt) {
+          const elapsed = (Date.now() - new Date(room.playbackStartedAt).getTime()) / 1000;
+          const expectedPos = room.playbackPosition + elapsed;
+          const currentPos = playerRef.current.getCurrentTime?.() ?? 0;
+          if (Math.abs(expectedPos - currentPos) > 2) {
+            playerRef.current.seekTo(expectedPos, true);
+          }
+        }
+      } else {
+        // Server says paused
+        if (playerState === YT.PlayerState.PLAYING) {
+          playerRef.current.pauseVideo();
+        }
+        // Seek to the paused position
+        const currentPos = playerRef.current.getCurrentTime?.() ?? 0;
+        if (Math.abs(room.playbackPosition - currentPos) > 1) {
+          playerRef.current.seekTo(room.playbackPosition, true);
+        }
+      }
+      setIsPlaying(room.isPlaying);
+    } catch (e) {
+      // Player might not be ready yet
+    }
+  }, [room?.isPlaying, room?.playbackPosition, room?.playbackStartedAt, room?.mode]);
 
   const fetchRoomData = async () => {
     try {
@@ -535,7 +595,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     ...messages.map(m => ({
       type: "msg" as const,
       id: m.id,
-      user: m.userEmail?.split('@')[0] || "User",
+      user: m.username || m.userEmail?.split('@')[0] || "User",
       text: m.text,
       time: m.createdAt
     })),
@@ -545,7 +605,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       return {
         type: "event" as const,
         id: `add-${q.id}`,
-        user: q.addedBy?.split('@')[0] || "Someone",
+        user: q.addedByUsername || q.addedBy?.split('@')[0] || "Someone",
         text: `added track "${q.title.substring(0, 30)}..."`,
         time: q.createdAt,
         isHighlight
@@ -559,6 +619,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   return (
     <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-36">
       <Appbar />
+      <UsernameModal />
 
       <main className="container flex-1 py-20 md:py-24 px-4 md:px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
 
@@ -571,13 +632,17 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-[#10B981] px-2.5 py-0.5 rounded-full bg-[#10B981]/10 border border-[#10B981]/20">
-                    Live Broadcast
+                    {room.mode === "listen_together" ? "Listen Together" : "Live Broadcast"}
                   </span>
-                  <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
+                  {room.mode === "listen_together" ? (
+                    <Globe className="w-3.5 h-3.5 text-[#818CF8]" />
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
+                  )}
                 </div>
                 <h1 className="text-2xl font-heading font-black tracking-tight text-white">{room.name}</h1>
                 <p className="text-xs text-[#A1A1AA] mt-1">
-                  Hosted by <span className="text-[#FAFAFA] font-medium">{room.host.email?.split('@')[0] || "Host"}</span>
+                  Hosted by <span className="text-[#FAFAFA] font-medium">{room.host.username || room.host.email?.split('@')[0] || "Host"}</span>
                 </p>
               </div>
 
@@ -659,7 +724,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                       {room.currentStream.title}
                     </h2>
                     <p className="text-xs text-[#A1A1AA] mt-1">
-                      Added by <span className="text-[#FAFAFA] font-medium">{room.currentStream.addedBy?.split('@')[0] || "System"}</span>
+                      Added by <span className="text-[#FAFAFA] font-medium">{room.currentStream.addedByUsername || room.currentStream.addedBy?.split('@')[0] || "System"}</span>
                     </p>
                   </div>
 
@@ -667,14 +732,25 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   <div className="space-y-1.5">
                     <div
                       className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
-                      onClick={(e) => {
-                        if (!playerRef.current || !duration) return;
+                      onClick={async (e) => {
+                        if (!duration) return;
+                        if (room.mode === "listen_together" && !isHost) return;
                         const rect = e.currentTarget.getBoundingClientRect();
                         const x = e.clientX - rect.left;
                         const percent = x / rect.width;
                         const newTime = percent * duration;
-                        playerRef.current.seekTo(newTime, true);
-                        setProgress(newTime);
+                        if (room.mode === "listen_together" && isHost) {
+                          await fetch(`/api/rooms/${roomId}/playback`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "seek", position: newTime }),
+                          });
+                          setProgress(newTime);
+                          fetchRoomData();
+                        } else if (playerRef.current) {
+                          playerRef.current.seekTo(newTime, true);
+                          setProgress(newTime);
+                        }
                       }}
                     >
                       <div
@@ -690,9 +766,18 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
                   {/* Playback Controls & Skip */}
                   <div className="flex items-center gap-3">
+                    {(room.mode !== "listen_together" || isHost) && (
                     <button
-                      onClick={() => {
-                        if (playerRef.current) {
+                      onClick={async () => {
+                        if (room.mode === "listen_together" && isHost) {
+                          await fetch(`/api/rooms/${roomId}/playback`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: isPlaying ? "pause" : "play" }),
+                          });
+                          setIsPlaying(!isPlaying);
+                          fetchRoomData();
+                        } else if (playerRef.current) {
                           if (isPlaying) playerRef.current.pauseVideo();
                           else playerRef.current.playVideo();
                           setIsPlaying(!isPlaying);
@@ -701,7 +786,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                       className="bg-[#090909] border border-[#27272A] hover:border-[#10B981]/50 text-white h-11 w-11 rounded-full flex items-center justify-center transition-colors cursor-pointer active:scale-95 duration-100"
                     >
                       {isPlaying ? <Pause className="h-4 w-4 text-[#10B981]" /> : <Play className="h-4 w-4 ml-0.5 text-[#10B981]" />}
-                    </button>
+                    </button>)}
                     {isHost && (
                       <button
                         onClick={handlePlayNext}
@@ -830,7 +915,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                             {stream.title}
                           </h4>
                           <p className="text-[10px] text-[#A1A1AA] mt-0.5">
-                            Added by <span className="text-[#FAFAFA]">{stream.addedBy?.split('@')[0] || "System"}</span>
+                            Added by <span className="text-[#FAFAFA]">{stream.addedByUsername || stream.addedBy?.split('@')[0] || "System"}</span>
                           </p>
                         </div>
 
@@ -952,14 +1037,25 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             <div className="hidden md:flex flex-col items-center gap-1.5 flex-[2] max-w-md">
               <div
                 className="w-full h-1 bg-[#27272A] rounded-full relative cursor-pointer group"
-                onClick={(e) => {
-                  if (!playerRef.current || !duration) return;
+                onClick={async (e) => {
+                  if (!duration) return;
+                  if (room.mode === "listen_together" && !isHost) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = e.clientX - rect.left;
                   const percent = x / rect.width;
                   const newTime = percent * duration;
-                  playerRef.current.seekTo(newTime, true);
-                  setProgress(newTime);
+                  if (room.mode === "listen_together" && isHost) {
+                    await fetch(`/api/rooms/${roomId}/playback`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "seek", position: newTime }),
+                    });
+                    setProgress(newTime);
+                    fetchRoomData();
+                  } else if (playerRef.current) {
+                    playerRef.current.seekTo(newTime, true);
+                    setProgress(newTime);
+                  }
                 }}
               >
                 <div
@@ -975,9 +1071,18 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
             {/* Play/Pause controls */}
             <div className="flex items-center gap-3">
+              {(room.mode !== "listen_together" || isHost) && (
               <button
-                onClick={() => {
-                  if (playerRef.current) {
+                onClick={async () => {
+                  if (room.mode === "listen_together" && isHost) {
+                    await fetch(`/api/rooms/${roomId}/playback`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: isPlaying ? "pause" : "play" }),
+                    });
+                    setIsPlaying(!isPlaying);
+                    fetchRoomData();
+                  } else if (playerRef.current) {
                     if (isPlaying) playerRef.current.pauseVideo();
                     else playerRef.current.playVideo();
                     setIsPlaying(!isPlaying);
@@ -986,7 +1091,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 className="bg-[#090909] hover:bg-[#18181B] border border-[#27272A] h-8 w-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
               >
                 {isPlaying ? <Pause className="h-3.5 w-3.5 text-[#10B981]" /> : <Play className="h-3.5 w-3.5 ml-0.5 text-[#10B981]" />}
-              </button>
+              </button>)}
               {isHost && (
                 <button
                   onClick={handlePlayNext}
