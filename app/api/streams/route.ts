@@ -12,12 +12,55 @@ const rateLimitStore = new Map<string, { count: number; lastRequest: number }>()
 const RATE_LIMIT_WINDOW = 60 * 1000; 
 const MAX_REQUESTS = 5; 
 
-const YT_REGEX = /^(https?:\/\/)?(www\.|music\.|m\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})([&?].*)?$/;
-const SPOTIFY_REGEX = /^(https?:\/\/)?(open\.)?spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)(\?.*)?$/;
+function extractYoutubeId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtu.be")) {
+      return parsed.pathname.slice(1);
+    }
+    if (parsed.hostname.includes("youtube.com")) {
+      if (parsed.pathname.startsWith("/shorts/")) {
+        return parsed.pathname.split("/")[2];
+      }
+      if (parsed.pathname.startsWith("/embed/")) {
+        return parsed.pathname.split("/")[2];
+      }
+      return parsed.searchParams.get("v");
+    }
+  } catch (e) {}
+  
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function extractSpotifyId(url: string): { id: string; type: string } | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("spotify.com")) {
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) {
+        return {
+          type: parts[0],
+          id: parts[1]
+        };
+      }
+    }
+  } catch (e) {}
+  
+  const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/);
+  if (match) {
+    return {
+      type: match[1],
+      id: match[2]
+    };
+  }
+  return null;
+}
 
 const CreateStreamSchema = z.object({
   creatorId: z.string(),
-  url: z.string(), // Removed strict refinement here to debug, or move it to runtime check with logging
+  url: z.string(),
   roomId: z.string(),
 });
 
@@ -68,10 +111,10 @@ export async function POST(req: NextRequest) {
     // Force creatorId to be the authenticated user
     data.creatorId = user.id;
 
-    const isYt = YT_REGEX.test(data.url);
-    const isSpotify = SPOTIFY_REGEX.test(data.url);
+    const ytId = extractYoutubeId(data.url);
+    const spotifyData = extractSpotifyId(data.url);
 
-    if (!isYt && !isSpotify) {
+    if (!ytId && !spotifyData) {
       console.log("URL validation failed for:", data.url);
       return NextResponse.json({ message: "URL must be a valid YouTube or Spotify link" }, { status: 400 });
     }
@@ -83,34 +126,75 @@ export async function POST(req: NextRequest) {
     let streamType = "";
 
     // YouTube
-    if (isYt) {
+    if (ytId) {
       streamType = "Youtube";
-      const match = data.url.match(YT_REGEX);
-      extractedId = match && match[4] ? match[4] : "";
+      extractedId = ytId;
       
-      const res = await youtubesearchapi.GetVideoDetails(extractedId);
-      title = res.title ?? "cant find";
-
-      const thumbnails = res.thumbnail.thumbnails;
-      thumbnails.sort((a: { width: number }, b: { width: number }) =>
-        a.width < b.width ? -1 : 1
-      );
-      if (thumbnails.length > 1) {
-        smallImg = thumbnails[thumbnails.length - 2].url;
-      } else {
-        smallImg = thumbnails[thumbnails.length - 1].url;
+      try {
+        const res = await youtubesearchapi.GetVideoDetails(extractedId);
+        if (res && typeof res === 'object') {
+          title = res.title ?? "unknown title";
+          const thumbnails = res.thumbnail?.thumbnails;
+          if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
+            thumbnails.sort((a: { width: number }, b: { width: number }) =>
+              a.width < b.width ? -1 : 1
+            );
+            if (thumbnails.length > 1) {
+              smallImg = thumbnails[thumbnails.length - 2].url;
+            } else {
+              smallImg = thumbnails[thumbnails.length - 1].url;
+            }
+            bigImg = thumbnails[thumbnails.length - 1].url ?? "";
+          } else {
+            smallImg = `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`;
+            bigImg = `https://img.youtube.com/vi/${extractedId}/maxresdefault.jpg`;
+          }
+        } else {
+          throw new Error("Invalid response from youtubesearchapi");
+        }
+      } catch (ytErr) {
+        console.warn("youtube-search-api failed, trying oEmbed fallback:", ytErr);
+        try {
+          const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${extractedId}&format=json`;
+          const oEmbedRes = await fetch(oEmbedUrl);
+          if (oEmbedRes.ok) {
+            const oEmbedData = await oEmbedRes.json();
+            title = oEmbedData.title ?? "YouTube Video";
+            smallImg = oEmbedData.thumbnail_url ?? `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`;
+            bigImg = oEmbedData.thumbnail_url ?? `https://img.youtube.com/vi/${extractedId}/maxresdefault.jpg`;
+          } else {
+            title = "YouTube Video";
+            smallImg = `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`;
+            bigImg = `https://img.youtube.com/vi/${extractedId}/maxresdefault.jpg`;
+          }
+        } catch (oembedErr) {
+          console.error("oEmbed fallback failed:", oembedErr);
+          title = "YouTube Video";
+          smallImg = `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`;
+          bigImg = `https://img.youtube.com/vi/${extractedId}/maxresdefault.jpg`;
+        }
       }
-      bigImg = thumbnails[thumbnails.length - 1].url ?? "";
     }
 
-    else if (isSpotify) {
+    else if (spotifyData) {
       streamType = "Spotify";
-      const match = data.url.match(SPOTIFY_REGEX);
-      extractedId = match && match[4] ? match[4] : "";
+      extractedId = spotifyData.id;
 
-      title = "Spotify Track";
-      smallImg = "";
-      bigImg = "";
+      try {
+        const oEmbedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(data.url)}`;
+        const spotifyRes = await fetch(oEmbedUrl);
+        if (spotifyRes.ok) {
+          const sData = await spotifyRes.json();
+          title = sData.title ?? `${spotifyData.type.charAt(0).toUpperCase() + spotifyData.type.slice(1)} - Spotify`;
+          smallImg = sData.thumbnail_url ?? "";
+          bigImg = sData.thumbnail_url ?? "";
+        } else {
+          title = `${spotifyData.type.charAt(0).toUpperCase() + spotifyData.type.slice(1)} - Spotify`;
+        }
+      } catch (spotifyErr) {
+        console.error("Spotify oEmbed failed:", spotifyErr);
+        title = `${spotifyData.type.charAt(0).toUpperCase() + spotifyData.type.slice(1)} - Spotify`;
+      }
     }
 
     // Resolve room code to actual database ID

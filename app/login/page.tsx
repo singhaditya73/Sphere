@@ -1,15 +1,23 @@
 "use client"
 
-import { useState, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, Suspense, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Circle } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 
 function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const router = useRouter()
+  const { status } = useSession()
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push(callbackUrl)
+    }
+  }, [status, callbackUrl, router])
 
   const handleGoogleLogin = () => {
     setIsLoading(true)

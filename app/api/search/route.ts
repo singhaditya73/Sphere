@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
       [{ type: "video" }]
     );
 
-    const videos = (results.items || [])
-      .filter((item: any) => item.type === "video" && item.id)
+        const videos = ((results && results.items) || [])
+      .filter((item: any) => item && item.type === "video" && item.id)
       .slice(0, 6)
       .map((item: any) => ({
         id: item.id,
