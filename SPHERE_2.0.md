@@ -127,11 +127,23 @@ intentionally not replayed). See `README.md` for the setup commands.
 
 - [x] `npm test` — 59/59 passing (includes `tests/sphere2.test.ts`).
 - [x] `npm run typecheck` — clean.
-- [ ] `npm run build` — not yet re-run since the Sphere 2.0 changes (the dev
-      server was running; run `npm run build` with the dev server stopped).
+- [x] `npm run build` — succeeds (run with the dev server stopped).
 
 ## Requires external configuration (documented, not verifiable in this environment)
 
 - **LiveKit**: a real project + a multi-device audio/video/screen-share test.
 - **AI**: a real `AI_API_KEY` to exercise `/api/ai/suggest` end-to-end.
 - **YouTube full-length**: `YOUTUBE_API_KEY` (set locally).
+
+## Known gaps (honest status)
+
+- The moderation API supports **unban**, but there is no banned-list UI yet, so
+  the host can only unban through the API. No unban button is shown (nothing
+  fake is rendered).
+- Room **visibility cannot be changed after creation** — it is chosen at create
+  time. Existing rooms defaulted to `unlisted`, so the public directory starts
+  empty until a host creates a public room.
+- The call/mic integration is code-complete and type-checked, but a real
+  multi-device LiveKit call has not been exercised here.
+- Recaps are exposed via `/api/rooms/[roomId]/recap` but have no dedicated UI
+  yet — the data is available for a future recap screen.
