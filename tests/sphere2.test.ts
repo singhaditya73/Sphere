@@ -30,6 +30,14 @@ import {
   unavailableReason,
 } from "../lib/media.ts";
 import { parseSuggestionPlan, sanitizeQueries } from "../lib/ai/parse.ts";
+import {
+  createAiProvider,
+  DEFAULT_AI_BASE_URL,
+  DEFAULT_AI_MODEL,
+  DEFAULT_AI_TIMEOUT_MS,
+  getAiConfig,
+  isAiConfigured,
+} from "../lib/ai/index.ts";
 import { filterTracksByCategory } from "../lib/music/youtube-parse.ts";
 import type { Track } from "../lib/music/types.ts";
 
@@ -288,4 +296,85 @@ test("parseSuggestionPlan extracts JSON from prose and fences", () => {
   assert.equal(parseSuggestionPlan("no json here"), null);
   assert.equal(parseSuggestionPlan('{"intro":"x","queries":[]}'), null);
   assert.equal(parseSuggestionPlan('{"intro":"x","queries":["a"]'), null);
+});
+
+/* ───────────────────────────── AI configuration ─────────────────────────── */
+
+test("getAiConfig is null without a key and defaults to Groq", () => {
+  assert.equal(getAiConfig({}), null);
+  assert.equal(isAiConfigured({}), false);
+
+  const config = getAiConfig({ GROQ_API_KEY: "gsk_test" });
+  assert.ok(config);
+  assert.equal(config!.apiKey, "gsk_test");
+  assert.equal(config!.baseUrl, DEFAULT_AI_BASE_URL);
+  assert.equal(config!.baseUrl, "https://api.groq.com/openai/v1");
+  assert.equal(config!.model, DEFAULT_AI_MODEL);
+  assert.equal(config!.timeoutMs, DEFAULT_AI_TIMEOUT_MS);
+});
+
+test("getAiConfig accepts AI_API_KEY as an alias (and prefers it)", () => {
+  assert.equal(getAiConfig({ AI_API_KEY: "generic" })!.apiKey, "generic");
+  assert.equal(
+    getAiConfig({ AI_API_KEY: "generic", GROQ_API_KEY: "gsk" })!.apiKey,
+    "generic"
+  );
+  assert.equal(isAiConfigured({ GROQ_API_KEY: "gsk" }), true);
+});
+
+test("getAiConfig honours overrides and normalises the base URL", () => {
+  const config = getAiConfig({
+    GROQ_API_KEY: "gsk",
+    AI_BASE_URL: "https://example.test/v1///",
+    AI_MODEL: "openai/gpt-oss-120b",
+    AI_TIMEOUT_MS: "4500",
+  })!;
+  assert.equal(config.baseUrl, "https://example.test/v1");
+  assert.equal(config.model, "openai/gpt-oss-120b");
+  assert.equal(config.timeoutMs, 4500);
+
+  // Bad timeout values fall back to the default.
+  assert.equal(getAiConfig({ GROQ_API_KEY: "k", AI_TIMEOUT_MS: "nope" })!.timeoutMs, DEFAULT_AI_TIMEOUT_MS);
+  assert.equal(getAiConfig({ GROQ_API_KEY: "k", AI_TIMEOUT_MS: "-5" })!.timeoutMs, DEFAULT_AI_TIMEOUT_MS);
+});
+
+function jsonResponse(body: unknown, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as unknown as Response;
+}
+
+test("AI provider retries without response_format when rejected", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const fetchImpl = (async (url: string, init: { body: string }) => {
+    calls.push({ url, body: JSON.parse(init.body) });
+    if (calls.length === 1) return jsonResponse({ error: "response_format unsupported" }, 400);
+    return jsonResponse({
+      choices: [{ message: { content: '{"intro":"hi","queries":["lofi beats"]}' } }],
+    });
+  }) as unknown as typeof fetch;
+
+  const provider = createAiProvider(
+    { apiKey: "k", baseUrl: "https://api.groq.com/openai/v1", model: "m", timeoutMs: 1000 },
+    { fetchImpl }
+  );
+  const plan = await provider.suggest({ prompt: "chill" });
+
+  assert.deepEqual(plan, { intro: "hi", queries: ["lofi beats"] });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, "https://api.groq.com/openai/v1/chat/completions");
+  assert.deepEqual(calls[0].body.response_format, { type: "json_object" });
+  assert.equal(calls[1].body.response_format, undefined);
+});
+
+test("AI provider surfaces unusable responses as errors", async () => {
+  const fetchImpl = (async () =>
+    jsonResponse({ choices: [{ message: { content: "not json at all" } }] })) as unknown as typeof fetch;
+  const provider = createAiProvider(
+    { apiKey: "k", baseUrl: "https://api.groq.com/openai/v1", model: "m", timeoutMs: 1000 },
+    { fetchImpl }
+  );
+  await assert.rejects(() => provider.suggest({ prompt: "x" }), /unusable/);
 });

@@ -191,8 +191,8 @@ export function AiCompanion({ open, onOpenChange, roomId, queuedTrackIds, onAdde
                   {error}
                   {unconfigured && (
                     <span className="block text-[10px] text-[#71717A] mt-1">
-                      An administrator can enable this by setting <code>AI_API_KEY</code> (optionally{" "}
-                      <code>AI_BASE_URL</code> / <code>AI_MODEL</code>).
+                      An administrator can enable this by setting <code>GROQ_API_KEY</code>{" "}
+                      (optionally <code>AI_MODEL</code> / <code>AI_BASE_URL</code>).
                     </span>
                   )}
                 </p>

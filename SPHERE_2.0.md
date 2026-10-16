@@ -87,14 +87,19 @@ LIVEKIT_API_SECRET="..."
 - `GET/POST /api/rooms/[roomId]/call/token` returns a short-lived, room-scoped JWT.
 - Recording is **off by default** and never initiated by Sphere.
 
-### AI room companion
+### AI room companion (Groq)
 ```
-AI_API_KEY="..."
-AI_BASE_URL=""      # optional, default https://api.openai.com/v1
-AI_MODEL=""         # optional, default gpt-4o-mini
+GROQ_API_KEY="..."                    # from https://console.groq.com/keys
+AI_MODEL=""                           # optional, default openai/gpt-oss-20b
+AI_BASE_URL=""                        # optional, default https://api.groq.com/openai/v1
+AI_TIMEOUT_MS=""                      # optional, default 20000
 ```
-- Any OpenAI-compatible chat-completions endpoint works.
+- Defaults to **Groq** (fast, cheap, OpenAI-compatible). `AI_API_KEY` is accepted
+  as an alias for `GROQ_API_KEY`.
+- `openai/gpt-oss-20b` is the fast default; set `AI_MODEL=openai/gpt-oss-120b`
+  for the larger model. Any OpenAI-compatible endpoint still works via `AI_BASE_URL`.
 - The model returns search *queries*; Sphere resolves them with the real provider.
+- If a model rejects `response_format`, the provider retries once without it.
 
 ### Full-length YouTube
 ```
@@ -132,7 +137,7 @@ intentionally not replayed). See `README.md` for the setup commands.
 ## Requires external configuration (documented, not verifiable in this environment)
 
 - **LiveKit**: a real project + a multi-device audio/video/screen-share test.
-- **AI**: a real `AI_API_KEY` to exercise `/api/ai/suggest` end-to-end.
+- **AI**: a real `GROQ_API_KEY` to exercise `/api/ai/suggest` end-to-end.
 - **YouTube full-length**: `YOUTUBE_API_KEY` (set locally).
 
 ## Known gaps (honest status)

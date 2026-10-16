@@ -44,7 +44,7 @@ npm install
 # DATABASE_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET
 # YOUTUBE_API_KEY (optional — full-length YouTube; otherwise keyless iTunes previews)
 # LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET (optional — in-room calls)
-# AI_API_KEY (+ optional AI_BASE_URL / AI_MODEL) (optional — AI room companion)
+# GROQ_API_KEY (+ optional AI_MODEL / AI_BASE_URL) (optional — AI room companion)
 
 # Sync the database schema with Prisma (see SPHERE_2.0.md for notes)
 npx prisma db push
@@ -83,7 +83,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 - **Music Search**: keyless iTunes Search API by default; YouTube Data API v3 when keyed (server-side provider abstraction)
 - **Calls**: LiveKit (`livekit-client` + `livekit-server-sdk`), server-minted room tokens
 - **QR codes**: generated server-side with `qrcode` (no third-party image service)
-- **AI companion**: any OpenAI-compatible endpoint, server-side only
+- **AI companion**: Groq (OpenAI-compatible) by default, server-side only
 - **Tests**: Node.js built-in test runner (`npm test`)
 
 ## 📁 Project Structure

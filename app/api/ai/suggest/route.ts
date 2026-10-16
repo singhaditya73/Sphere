@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
     if (!provider) {
       return NextResponse.json(
         {
-          message: "The AI companion is not configured. Set AI_API_KEY to enable it.",
+          message:
+            "The AI companion is not configured. Set GROQ_API_KEY (or AI_API_KEY) to enable it.",
           code: "AI_NOT_CONFIGURED",
         },
         { status: 503 }
