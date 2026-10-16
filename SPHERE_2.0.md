@@ -110,34 +110,39 @@ YOUTUBE_API_KEY="..."   # enable "YouTube Data API v3"
 
 The database schema must exist in the database Vercel points at — it is **not**
 the same database as your local `.env.local` unless you point both at the same
-Neon project.
+database.
 
 The `vercel-build` script keeps it in sync automatically:
 
 ```
-prisma generate && prisma db push --skip-generate && next build
+prisma generate && node scripts/db-push.mjs && next build
 ```
 
-So every Vercel deploy applies any schema changes to `DATABASE_URL` before
-building. `prisma db push` **refuses to run** (and fails the build) if a change
-would lose data, so it will never silently drop columns.
+`scripts/db-push.mjs` runs `prisma db push` against the **direct / session**
+connection, because DDL cannot run through a transaction-mode pooler:
+
+- **Supabase**: `DATABASE_URL` uses port **6543** (transaction pooler). The
+  script swaps it to port **5432** (session pooler) for the push only; the app
+  keeps using 6543 at runtime.
+- If you set an explicit **`DIRECT_URL`**, the script uses that instead (useful
+  for any PgBouncer setup).
+
+`prisma db push` refuses to run (and fails the build) when a change would lose
+data, and the script has a 120s timeout so an unreachable database fails the
+build instead of hanging it.
 
 To apply the schema to production manually, once:
 
 ```bash
 cd Sphere
-# either pull the value from Vercel…
-npx vercel env pull .env.production.local --environment=production
-export DATABASE_URL="$(grep '^DATABASE_URL=' .env.production.local | cut -d= -f2- | tr -d '"')"
-# …or paste it directly
-# export DATABASE_URL="postgresql://…"
+export DATABASE_URL="postgresql://…"   # production URL (Supabase port 6543)
 
 # preview the SQL that will run (look for any DROP)
-npx prisma migrate diff --from-url "$DATABASE_URL" \
+npx prisma migrate diff --from-url "${DATABASE_URL/:6543/:5432}" \
   --to-schema-datamodel prisma/schema.prisma --script
 
-# apply it
-npx prisma db push
+# apply via the session pooler
+DATABASE_URL="${DATABASE_URL/:6543/:5432}" npx prisma db push
 ```
 
 > The migration history is intentionally not used (`prisma migrate` would replay
