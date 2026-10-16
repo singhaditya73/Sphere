@@ -4,12 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Loader2,
+  Maximize2,
   Mic,
   MicOff,
+  Minimize2,
   MonitorUp,
   MonitorX,
   Phone,
   PhoneOff,
+  Pin,
   Settings,
   Users,
   Video,
@@ -36,16 +39,6 @@ interface VideoCallProps {
   /** Whether calling is allowed in this room (room.callsEnabled && active). */
   enabled: boolean;
   isHost: boolean;
-}
-
-function upsert(list: ParticipantView[], identity: string, patch: Partial<ParticipantView>): ParticipantView[] {
-  const index = list.findIndex((p) => p.identity === identity);
-  if (index === -1) {
-    return [...list, { identity, name: identity, isLocal: false, isSpeaking: false, micEnabled: false, cameraEnabled: false, videoTrack: null, screenTrack: null, audioTrack: null, ...patch }];
-  }
-  const next = [...list];
-  next[index] = { ...next[index], ...patch };
-  return next;
 }
 
 /** Attach/detach a LiveKit track to a media element without React fighting us. */
@@ -81,12 +74,80 @@ function MediaTile({ track, kind }: { track: unknown; kind: "video" | "audio" })
 }
 
 /**
+ * A single participant tile. Shows a screen share when present, otherwise the
+ * camera, otherwise the participant's initial. The pin button promotes the
+ * participant to the main stage.
+ */
+function CallTile({
+  participant,
+  pinned,
+  onTogglePin,
+  className = "",
+  showPin = true,
+}: {
+  participant: ParticipantView;
+  pinned: boolean;
+  onTogglePin: () => void;
+  className?: string;
+  showPin?: boolean;
+}) {
+  const track = participant.screenTrack ?? (participant.cameraEnabled ? participant.videoTrack : null);
+  return (
+    <div
+      className={`relative rounded-xl overflow-hidden border bg-black ${
+        pinned ? "border-[#10B981]" : participant.isSpeaking ? "border-[#10B981]/60" : "border-[#27272A]"
+      } ${className}`}
+    >
+      {track ? (
+        <MediaTile track={track} kind="video" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-[#10B981] bg-[#18181B]">
+          {(participant.name || "?").slice(0, 1).toUpperCase()}
+        </div>
+      )}
+      {!participant.isLocal && participant.audioTrack ? <MediaTile track={participant.audioTrack} kind="audio" /> : null}
+
+      <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 text-[9px] text-white bg-black/50 rounded px-1.5 py-0.5">
+        {participant.micEnabled ? (
+          <Mic className="w-2.5 h-2.5" />
+        ) : (
+          <MicOff className="w-2.5 h-2.5 text-[#F87171]" />
+        )}
+        <span className="truncate">
+          {participant.name}
+          {participant.isLocal ? " (you)" : ""}
+        </span>
+      </div>
+
+      {showPin && (
+        <button
+          onClick={onTogglePin}
+          aria-label={pinned ? "Unpin from main view" : "Pin to main view"}
+          aria-pressed={pinned}
+          title={pinned ? "Unpin" : "Pin to main view"}
+          className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center border backdrop-blur-sm transition-colors cursor-pointer ${
+            pinned
+              ? "bg-[#10B981]/20 border-[#10B981]/50 text-[#10B981]"
+              : "bg-black/50 border-white/10 text-white/70 hover:text-white"
+          }`}
+        >
+          <Pin className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * In-room video calling backed by LiveKit.
  *
  * The token is minted server-side per room and per user; this component only
  * ever holds a short-lived JWT. Camera/mic tracks are stopped on leave so the
  * browser's recording indicator clears. Leaving the call does not leave the
  * Sphere room.
+ *
+ * The panel has two sizes: a compact corner panel and an enlarged view where a
+ * participant can be pinned to the main stage.
  */
 export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
   const [open, setOpen] = useState(false);
@@ -99,6 +160,10 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [mics, setMics] = useState<{ id: string; label: string }[]>([]);
+  /** Enlarged (theatre) view vs. the compact corner panel. */
+  const [expanded, setExpanded] = useState(false);
+  /** Participant promoted to the main stage; null = automatic. */
+  const [pinnedIdentity, setPinnedIdentity] = useState<string | null>(null);
 
   const roomRef = useRef<any>(null);
 
@@ -107,6 +172,8 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
     setMicOn(false);
     setCamOn(false);
     setSharing(false);
+    setExpanded(false);
+    setPinnedIdentity(null);
   }, []);
 
   const leave = useCallback(async () => {
@@ -266,8 +333,19 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
   }, []);
 
   const screenSharer = participants.find((p) => p.screenTrack);
+  const pinned = pinnedIdentity ? participants.find((p) => p.identity === pinnedIdentity) ?? null : null;
+  // Main stage priority: an explicit pin, then an active screen share, then you,
+  // then whoever is first.
+  const stage = pinned ?? screenSharer ?? participants.find((p) => p.isLocal) ?? participants[0] ?? null;
+  const rest = stage ? participants.filter((p) => p.identity !== stage.identity) : participants;
+  const isExpanded = expanded && status === "connected";
 
   if (!enabled) return null;
+
+  const togglePin = (identity: string) =>
+    setPinnedIdentity((prev) => (prev === identity ? null : identity));
+
+  const controlButton = "h-9 w-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer";
 
   return (
     <>
@@ -292,130 +370,176 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="fixed top-24 right-4 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
+            className={
+              isExpanded
+                ? "fixed inset-0 z-50 bg-[#090909]/97 backdrop-blur-md flex flex-col"
+                : "fixed top-24 right-4 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
+            }
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A]/60">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A]/60 shrink-0">
               <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-[#10B981]" /> Room Call
                 {status === "connected" && (
                   <span className="text-[10px] text-[#A1A1AA] normal-case font-medium">· {participants.length} in call</span>
                 )}
               </span>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Hide call panel"
-                className="w-7 h-7 rounded-full border border-[#27272A] text-[#A1A1AA] hover:text-white flex items-center justify-center cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {status === "connected" && (
+                  <button
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-label={expanded ? "Shrink call view" : "Enlarge call view"}
+                    title={expanded ? "Shrink" : "Enlarge"}
+                    className="w-7 h-7 rounded-full border border-[#27272A] text-[#A1A1AA] hover:text-white flex items-center justify-center cursor-pointer"
+                  >
+                    {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    setExpanded(false);
+                  }}
+                  aria-label="Hide call panel"
+                  className="w-7 h-7 rounded-full border border-[#27272A] text-[#A1A1AA] hover:text-white flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div className="p-4 space-y-3 max-h-[52vh] overflow-y-auto">
-              {status === "idle" && (
-                <div className="text-center py-6 space-y-3">
-                  <p className="text-xs text-[#A1A1AA]">
-                    Join the room call to talk, share your screen, or listen in.
-                  </p>
-                  <button
-                    onClick={join}
-                    className="h-10 px-6 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
-                  >
-                    <Phone className="w-4 h-4" /> Join call
-                  </button>
-                </div>
-              )}
-
-              {status === "connecting" && (
-                <div className="flex items-center justify-center gap-2 py-8 text-xs text-[#A1A1AA]">
-                  <Loader2 className="w-4 h-4 animate-spin text-[#10B981]" /> Connecting…
-                </div>
-              )}
-
-              {(status === "error" || status === "unconfigured") && (
-                <div className="space-y-3">
-                  <p className="text-xs text-[#F59E0B]">{error}</p>
-                  {status === "unconfigured" && (
-                    <p className="text-[10px] text-[#71717A] leading-relaxed">
-                      An administrator must set <code>LIVEKIT_URL</code>, <code>LIVEKIT_API_KEY</code> and{" "}
-                      <code>LIVEKIT_API_SECRET</code> to enable calling.
-                    </p>
+            {/* Enlarged stage */}
+            {isExpanded ? (
+              <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4 gap-3">
+                <div className="flex-1 min-h-0 flex items-center justify-center">
+                  {stage ? (
+                    <CallTile
+                      participant={stage}
+                      pinned={Boolean(pinned)}
+                      onTogglePin={() => togglePin(stage.identity)}
+                      className="w-full h-full max-w-6xl"
+                    />
+                  ) : (
+                    <span className="text-xs text-[#71717A]">Waiting for participants…</span>
                   )}
-                  <button
-                    onClick={join}
-                    className="h-9 px-4 rounded-full border border-[#27272A] text-white text-xs font-bold cursor-pointer"
-                  >
-                    Retry
-                  </button>
                 </div>
-              )}
 
-              {status === "connected" && (
-                <>
-                  {screenSharer?.screenTrack ? (
-                    <div className="rounded-xl overflow-hidden border border-[#10B981]/40 bg-black aspect-video">
-                      <MediaTile track={screenSharer.screenTrack} kind="video" />
-                    </div>
-                  ) : null}
-
-                  <div className="grid grid-cols-2 gap-2">
+                {participants.length > 1 && (
+                  <div className="shrink-0 flex gap-2 overflow-x-auto pb-1">
                     {participants.map((p) => (
-                      <div
+                      <CallTile
                         key={p.identity}
-                        className={`relative rounded-xl overflow-hidden border bg-black aspect-video ${
-                          p.isSpeaking ? "border-[#10B981]" : "border-[#27272A]"
-                        }`}
-                      >
-                        {p.cameraEnabled && p.videoTrack ? (
-                          <MediaTile track={p.videoTrack} kind="video" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg font-bold text-[#10B981] bg-[#18181B]">
-                            {(p.name || "?").slice(0, 1).toUpperCase()}
-                          </div>
-                        )}
-                        {!p.isLocal && p.audioTrack ? <MediaTile track={p.audioTrack} kind="audio" /> : null}
-                        <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1 text-[9px] text-white bg-black/50 rounded px-1.5 py-0.5">
-                          {p.micEnabled ? <Mic className="w-2.5 h-2.5" /> : <MicOff className="w-2.5 h-2.5 text-[#F87171]" />}
-                          <span className="truncate">{p.name}{p.isLocal ? " (you)" : ""}</span>
-                        </div>
-                      </div>
+                        participant={p}
+                        pinned={pinnedIdentity === p.identity}
+                        onTogglePin={() => togglePin(p.identity)}
+                        className="w-32 h-20 shrink-0"
+                      />
                     ))}
                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 space-y-3 max-h-[52vh] overflow-y-auto">
+                {status === "idle" && (
+                  <div className="text-center py-6 space-y-3">
+                    <p className="text-xs text-[#A1A1AA]">
+                      Join the room call to talk, share your screen, or listen in.
+                    </p>
+                    <button
+                      onClick={join}
+                      className="h-10 px-6 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+                    >
+                      <Phone className="w-4 h-4" /> Join call
+                    </button>
+                  </div>
+                )}
 
-                  {error && <p className="text-[10px] text-[#F87171]">{error}</p>}
+                {status === "connecting" && (
+                  <div className="flex items-center justify-center gap-2 py-8 text-xs text-[#A1A1AA]">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#10B981]" /> Connecting…
+                  </div>
+                )}
 
-                  {devicesOpen && (
-                    <div className="space-y-2 border-t border-[#27272A]/60 pt-3">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#A1A1AA]">Camera</label>
-                      <select
-                        onChange={(e) => switchDevice("videoinput", e.target.value)}
-                        className="w-full bg-[#090909] border border-[#27272A] rounded-lg h-8 px-2 text-[11px] text-white"
-                      >
-                        {cameras.map((c) => (
-                          <option key={c.id} value={c.id}>{c.label}</option>
+                {(status === "error" || status === "unconfigured") && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-[#F59E0B]">{error}</p>
+                    {status === "unconfigured" && (
+                      <p className="text-[10px] text-[#71717A] leading-relaxed">
+                        An administrator must set <code>LIVEKIT_URL</code>, <code>LIVEKIT_API_KEY</code> and{" "}
+                        <code>LIVEKIT_API_SECRET</code> to enable calling.
+                      </p>
+                    )}
+                    <button
+                      onClick={join}
+                      className="h-9 px-4 rounded-full border border-[#27272A] text-white text-xs font-bold cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {status === "connected" && (
+                  <>
+                    {stage && (
+                      <CallTile
+                        participant={stage}
+                        pinned={Boolean(pinned)}
+                        onTogglePin={() => togglePin(stage.identity)}
+                        className="aspect-video"
+                      />
+                    )}
+
+                    {rest.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {rest.map((p) => (
+                          <CallTile
+                            key={p.identity}
+                            participant={p}
+                            pinned={false}
+                            onTogglePin={() => togglePin(p.identity)}
+                            className="aspect-video"
+                          />
                         ))}
-                      </select>
-                      <label className="block text-[9px] uppercase tracking-wider text-[#A1A1AA]">Microphone</label>
-                      <select
-                        onChange={(e) => switchDevice("audioinput", e.target.value)}
-                        className="w-full bg-[#090909] border border-[#27272A] rounded-lg h-8 px-2 text-[11px] text-white"
-                      >
-                        {mics.map((m) => (
-                          <option key={m.id} value={m.id}>{m.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                      </div>
+                    )}
 
+                    {error && <p className="text-[10px] text-[#F87171]">{error}</p>}
+
+                    {devicesOpen && (
+                      <div className="space-y-2 border-t border-[#27272A]/60 pt-3">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#A1A1AA]">Camera</label>
+                        <select
+                          onChange={(e) => switchDevice("videoinput", e.target.value)}
+                          className="w-full bg-[#090909] border border-[#27272A] rounded-lg h-8 px-2 text-[11px] text-white"
+                        >
+                          {cameras.map((c) => (
+                            <option key={c.id} value={c.id}>{c.label}</option>
+                          ))}
+                        </select>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#A1A1AA]">Microphone</label>
+                        <select
+                          onChange={(e) => switchDevice("audioinput", e.target.value)}
+                          className="w-full bg-[#090909] border border-[#27272A] rounded-lg h-8 px-2 text-[11px] text-white"
+                        >
+                          {mics.map((m) => (
+                            <option key={m.id} value={m.id}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Controls */}
             {status === "connected" && (
-              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-[#27272A]/60">
+              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-[#27272A]/60 shrink-0">
                 <button
                   onClick={toggleMic}
                   aria-label={micOn ? "Mute microphone" : "Unmute microphone"}
                   aria-pressed={micOn}
-                  className={`h-9 w-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer ${
+                  className={`${controlButton} ${
                     micOn ? "bg-[#10B981]/15 border-[#10B981]/40 text-[#10B981]" : "bg-[#7F1D1D]/20 border-[#EF4444]/30 text-[#F87171]"
                   }`}
                 >
@@ -425,7 +549,7 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
                   onClick={toggleCam}
                   aria-label={camOn ? "Turn camera off" : "Turn camera on"}
                   aria-pressed={camOn}
-                  className={`h-9 w-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer ${
+                  className={`${controlButton} ${
                     camOn ? "bg-[#10B981]/15 border-[#10B981]/40 text-[#10B981]" : "bg-[#090909] border-[#27272A] text-[#A1A1AA]"
                   }`}
                 >
@@ -435,7 +559,7 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
                   onClick={toggleShare}
                   aria-label={sharing ? "Stop sharing screen" : "Share your screen"}
                   aria-pressed={sharing}
-                  className={`h-9 w-9 rounded-full flex items-center justify-center border transition-colors cursor-pointer ${
+                  className={`${controlButton} ${
                     sharing ? "bg-[#818CF8]/15 border-[#818CF8]/40 text-[#818CF8]" : "bg-[#090909] border-[#27272A] text-[#A1A1AA]"
                   }`}
                 >
@@ -445,7 +569,7 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
                   onClick={() => setDevicesOpen((v) => !v)}
                   aria-label="Device settings"
                   aria-pressed={devicesOpen}
-                  className="h-9 w-9 rounded-full flex items-center justify-center border bg-[#090909] border-[#27272A] text-[#A1A1AA] hover:text-white transition-colors cursor-pointer"
+                  className={`${controlButton} bg-[#090909] border-[#27272A] text-[#A1A1AA] hover:text-white`}
                 >
                   <Settings className="w-4 h-4" />
                 </button>
