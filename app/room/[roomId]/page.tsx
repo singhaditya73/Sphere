@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
   QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones, AlertCircle,
-  Shield, Wand2, Radio, Lock
+  Shield, Wand2, Radio, Lock, BarChart3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
@@ -894,9 +894,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-[#10B981] px-2.5 py-0.5 rounded-full bg-[#10B981]/10 border border-[#10B981]/20">
                     {room.mode === "listen_together" ? "Listen Together" : "Live Broadcast"}
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#A1A1AA] px-2.5 py-0.5 rounded-full bg-[#18181B] border border-[#27272A]">
+                    {room.visibility}
                   </span>
                   {room.mode === "listen_together" ? (
                     <Globe className="w-3.5 h-3.5 text-[#818CF8]" />
@@ -908,6 +911,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 <p className="text-xs text-[#A1A1AA] mt-1">
                   Hosted by <span className="text-[#FAFAFA] font-medium">{room.host.username || room.host.email?.split('@')[0] || "Host"}</span>
                 </p>
+                {room.description && (
+                  <p className="text-xs text-[#71717A] mt-1.5 max-w-lg leading-relaxed">{room.description}</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -923,6 +929,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                   title="Open the TV-friendly Party Mode display"
                 >
                   <Radio className="w-3.5 h-3.5" /> Party Mode
+                </button>
+                <button
+                  onClick={() => router.push(`/room/${room.code}/recap`)}
+                  className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Session recap — top tracks, artists and contributors"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" /> Recap
                 </button>
                 {viewer?.isAuthenticated && (
                   <button
@@ -1499,6 +1512,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         isLocked={room.isLocked}
         chatMode={room.chatMode}
         addMode={room.addMode}
+        visibility={room.visibility}
         onRefresh={fetchRoomData}
         onError={(message) => showToast("error", message)}
       />

@@ -14,8 +14,51 @@ const ModerationSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("lock"), locked: z.boolean() }),
   z.object({ action: z.literal("set-chat"), chatMode: z.enum(["all", "hosts", "muted"]) }),
   z.object({ action: z.literal("set-add"), addMode: z.enum(["all", "hosts"]) }),
+  z.object({ action: z.literal("set-visibility"), visibility: z.enum(["public", "unlisted", "private"]) }),
   z.object({ action: z.literal("end") }),
 ]);
+
+/**
+ * GET /api/rooms/[roomId]/moderation — host-only moderation snapshot.
+ *
+ * Returns the currently banned users so the host panel can list and unban them.
+ * Banned users' emails are never exposed; only a display name.
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ roomId: string }> }
+) {
+  try {
+    const params = await props.params;
+    const access = await loadRoomContext(params.roomId, { requireUser: true, includeInactive: true });
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message, code: access.code }, { status: access.status });
+    }
+    const { ctx } = access;
+    if (!ctx.isHost) {
+      return NextResponse.json({ message: "Only the host can view moderation state." }, { status: 403 });
+    }
+
+    const bans = await prismaClient.roomBan.findMany({
+      where: { roomId: ctx.room.id },
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { email: true, username: true } } },
+    });
+
+    return NextResponse.json({
+      room: { visibility: ctx.room.visibility },
+      bans: bans.map((b) => ({
+        userId: b.userId,
+        username: b.user.username || b.user.email?.split("@")[0] || "Guest",
+        reason: b.reason,
+        createdAt: b.createdAt,
+      })),
+    });
+  } catch (e) {
+    console.error("Moderation GET error:", e);
+    return NextResponse.json({ message: "Error loading moderation state" }, { status: 500 });
+  }
+}
 
 /**
  * POST /api/rooms/[roomId]/moderation — host-only room controls.
@@ -87,6 +130,10 @@ export async function POST(
       case "set-add": {
         await prismaClient.room.update({ where: { id: roomId }, data: { addMode: data.addMode } });
         return NextResponse.json({ message: "Add mode updated" });
+      }
+      case "set-visibility": {
+        await prismaClient.room.update({ where: { id: roomId }, data: { visibility: data.visibility } });
+        return NextResponse.json({ message: "Visibility updated" });
       }
       case "end": {
         await prismaClient.room.update({

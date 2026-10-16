@@ -275,7 +275,7 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Toggle video call"
-        className="fixed bottom-6 left-6 z-40 h-11 rounded-full px-4 bg-[#121212]/95 backdrop-blur-md border border-[#27272A] hover:border-[#10B981]/50 text-white text-xs font-bold inline-flex items-center gap-2 shadow-2xl transition-colors cursor-pointer"
+        className="fixed bottom-24 left-4 sm:left-6 z-40 h-11 rounded-full px-4 bg-[#121212]/95 backdrop-blur-md border border-[#27272A] hover:border-[#10B981]/50 text-white text-xs font-bold inline-flex items-center gap-2 shadow-2xl transition-colors cursor-pointer"
       >
         <Phone className="w-4 h-4 text-[#10B981]" />
         {status === "connected" ? `Call · ${participants.length}` : "Call"}
@@ -287,7 +287,7 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 left-4 right-4 sm:right-auto sm:w-[380px] z-40 bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
+            className="fixed bottom-40 left-4 right-4 sm:right-auto sm:w-[380px] z-40 bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A]/60">
               <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Circle, ArrowRight, Users, ThumbsUp, Activity, Sparkles, Disc, Radio, Loader2, Music } from "lucide-react"
+import { Circle, ArrowRight, Users, ThumbsUp, Activity, Sparkles, Disc, Radio, Loader2, Music, Video, Tv, Bot, Swords, Shield } from "lucide-react"
 import { Appbar } from "@components/Appbar"
 import { MegaFooter } from "@/components/mega-footer"
 
@@ -175,18 +175,20 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/20">
               <Sparkles className="h-3 w-3 text-[#10B981]" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
-                Live Collaborative Audio
+                Universal Music & Video Rooms
               </span>
             </div>
 
             <h1 className="font-heading font-black leading-[1.05] tracking-tight text-4xl sm:text-5xl lg:text-6xl text-white">
               Listen together.<br />
-              Vote together.<br />
-              <span className="text-[#10B981]">Discover together.</span>
+              Watch together.<br />
+              <span className="text-[#10B981]">Decide together.</span>
             </h1>
 
             <p className="text-[#A1A1AA] text-sm sm:text-base max-w-lg leading-relaxed font-normal">
-              Create live listening rooms where everyone contributes songs and the crowd decides what plays next. Spotify + Discord for joint music curation.
+              Create live rooms for music and video where everyone contributes and the crowd
+              decides what plays next. Hop on a call, share your screen, and throw it on the
+              big screen with Party Mode.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -538,47 +540,79 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-2 mb-16">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">Core Platform</span>
-            <h2 className="font-heading font-black text-2xl text-white">Designed for Sound</h2>
+            <h2 className="font-heading font-black text-2xl text-white">Everything a room needs</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             {[
               {
-                title: "Immersive Now Playing",
-                desc: "Song artwork occupies center stage, generating dynamic ambient backdrops with real-time audio progress sliders.",
-                feature: "Room Page"
+                title: "Universal Media Queue",
+                desc: "Music and video share one democratic queue. Everyone adds and upvotes — the crowd decides what plays next.",
+                feature: "Music + Video",
+                icon: Music,
+                tint: "text-[#10B981]",
               },
               {
-                title: "Democratic Priority Voting",
-                desc: "Every vote up-ranks track indexes, making room queues real-time representation of crowd requests.",
-                feature: "Voting Experience"
+                title: "Live Calls & Screen Share",
+                desc: "Jump on an in-room call and share your screen with explicit consent. Audio never loops back into the room mix.",
+                feature: "Video Calling",
+                icon: Video,
+                tint: "text-[#818CF8]",
               },
               {
-                title: "Premium Queue Cards",
-                desc: "No confusing dashboards. Track listings display beautiful thumbnails, added-by info, and green vote action states.",
-                feature: "Queue System"
+                title: "Party Mode on the Big Screen",
+                desc: "Cast a clean, TV-friendly display to any screen — now playing, up-next queue, live reactions and the join QR code.",
+                feature: "Big Screen",
+                icon: Tv,
+                tint: "text-[#22D3EE]",
               },
               {
-                title: "Activity Interleaved Chat",
-                desc: "Follow the conversation and track listings in a single integrated live feed.",
-                feature: "Live Chat"
-              }
-            ].map((showcase, index) => (
-              <div 
-                key={index}
-                className="bg-[#121212] border border-[#27272A] p-8 rounded-2xl flex flex-col justify-between hover:border-[#3F3F46] transition-colors"
-              >
-                <div>
-                  <span className="text-[9px] font-bold text-[#10B981] uppercase tracking-widest">{showcase.feature}</span>
-                  <h3 className="font-heading font-black text-lg text-white mt-2 mb-3">{showcase.title}</h3>
-                  <p className="text-xs text-[#A1A1AA] leading-relaxed">{showcase.desc}</p>
+                title: "Polls & Song Battles",
+                desc: "Settle the next pick with a quick poll or a head-to-head battle. Votes are kept separate from the queue ranking.",
+                feature: "Crowd Control",
+                icon: Swords,
+                tint: "text-[#F59E0B]",
+              },
+              {
+                title: "AI Room Companion",
+                desc: "Ask for a vibe and get real search suggestions — resolved against the actual catalog, never queued without your say-so.",
+                feature: "AI Companion",
+                icon: Bot,
+                tint: "text-[#A78BFA]",
+              },
+              {
+                title: "Privacy & Host Controls",
+                desc: "Public, unlisted or private rooms with invitations, plus kick, ban, mute, lock and chat controls — enforced server-side.",
+                feature: "Moderation",
+                icon: Shield,
+                tint: "text-[#F87171]",
+              },
+            ].map((showcase, index) => {
+              const Icon = showcase.icon;
+              return (
+                <div
+                  key={index}
+                  className="bg-[#121212] border border-[#27272A] p-6 rounded-2xl flex flex-col justify-between hover:border-[#3F3F46] transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`w-8 h-8 rounded-lg bg-[#090909] border border-[#27272A] flex items-center justify-center ${showcase.tint}`}>
+                        <Icon className="w-4 h-4" />
+                      </span>
+                      <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest">
+                        {showcase.feature}
+                      </span>
+                    </div>
+                    <h3 className="font-heading font-black text-lg text-white mb-2">{showcase.title}</h3>
+                    <p className="text-xs text-[#A1A1AA] leading-relaxed">{showcase.desc}</p>
+                  </div>
+                  <div className="mt-6 pt-5 border-t border-[#27272A]/60 flex items-center justify-between text-xs font-bold text-white">
+                    <span>Explore in Room</span>
+                    <ArrowRight className="w-4 h-4 text-[#10B981]" />
+                  </div>
                 </div>
-                <div className="mt-8 pt-6 border-t border-[#27272A]/60 flex items-center justify-between text-xs font-bold text-white">
-                  <span>Explore in Room</span>
-                  <ArrowRight className="w-4 h-4 text-[#10B981]" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

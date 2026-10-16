@@ -7,7 +7,7 @@ import { Appbar } from "@/components/Appbar";
 import { UsernameModal } from "@/components/UsernameModal";
 import {
   Loader2, Plus, Disc, Radio, ChevronRight, Trash2, LogOut, Headphones, Globe,
-  Star, Lock, EyeOff, Users,
+  Star, Lock, EyeOff, Users, LogIn,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -45,6 +45,29 @@ export default function DashboardPage() {
   const [roomMode, setRoomMode] = useState<"dj" | "listen_together">("dj");
   const [visibility, setVisibility] = useState<Visibility>("unlisted");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joining, setJoining] = useState(false);
+
+  const joinByCode = async () => {
+    const raw = joinCode.trim();
+    if (!raw) return;
+    const id = raw.includes("/room/") ? raw.split("/room/")[1].split("?")[0] : raw;
+    if (!id) return;
+    setJoining(true);
+    try {
+      const res = await fetch(`/api/rooms/${id}`, { cache: "no-store" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data?.message || "That room could not be found.");
+        return;
+      }
+      router.push(`/room/${id}`);
+    } catch {
+      alert("Could not reach the room. Check the code and try again.");
+    } finally {
+      setJoining(false);
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -245,14 +268,42 @@ export default function DashboardPage() {
       <UsernameModal />
 
       <main className="container max-w-5xl mx-auto flex-1 py-28 px-6">
-        <div className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-6 border-b border-[#27272A]">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#10B981]">Overview</span>
-            <h1 className="text-2xl md:text-3xl font-heading font-black tracking-tight mt-1">My Rooms</h1>
+        <div className="mb-10 pb-6 border-b border-[#27272A]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#10B981]">Overview</span>
+              <h1 className="text-2xl md:text-3xl font-heading font-black tracking-tight mt-1">My Rooms</h1>
+              <p className="text-xs text-[#71717A] mt-1.5">
+                Host a session, join a friend&apos;s room, or pick up where you left off.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#A1A1AA] bg-[#121212] px-3.5 py-1.5 rounded-full border border-[#27272A]">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync Active
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#A1A1AA] bg-[#121212] px-3.5 py-1.5 rounded-full border border-[#27272A]">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Sync Active
+
+          {/* At-a-glance stats */}
+          <div className="grid grid-cols-3 gap-3 mt-6">
+            {[
+              { label: "Hosting", value: myRooms.length, icon: Disc, tint: "text-[#10B981]" },
+              { label: "Joined", value: joinedRooms.length, icon: Radio, tint: "text-[#818CF8]" },
+              { label: "Saved", value: savedRooms.length, icon: Star, tint: "text-[#F59E0B]" },
+            ].map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div
+                  key={stat.label}
+                  className="bg-[#121212] border border-[#27272A] rounded-2xl px-4 py-3 flex items-center gap-3"
+                >
+                  <Icon className={`w-4 h-4 ${stat.tint} shrink-0`} />
+                  <div className="min-w-0">
+                    <p className="text-lg font-heading font-black text-white leading-none">{stat.value}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-[#A1A1AA] mt-1">{stat.label}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -260,13 +311,37 @@ export default function DashboardPage() {
         <div className="mb-10">
           <AnimatePresence mode="wait">
             {!showCreateForm ? (
-              <motion.div key="trigger" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div
+                key="trigger"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex flex-col sm:flex-row sm:items-center gap-3"
+              >
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white transition-all h-10 px-6 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer active:scale-97"
+                  className="rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white transition-all h-10 px-6 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-97 shrink-0"
                 >
                   <Plus className="h-4 w-4" /> Create Room
                 </button>
+                <div className="flex gap-2 w-full sm:max-w-xs">
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && joinByCode()}
+                    placeholder="Join by code or link…"
+                    className="flex-1 h-10 px-4 rounded-full bg-[#121212] border border-[#27272A] text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
+                  />
+                  <button
+                    onClick={joinByCode}
+                    disabled={joining || !joinCode.trim()}
+                    className="h-10 px-4 rounded-full bg-[#121212] border border-[#27272A] hover:border-[#10B981]/50 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {joining ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
+                    Join
+                  </button>
+                </div>
               </motion.div>
             ) : (
               <motion.div

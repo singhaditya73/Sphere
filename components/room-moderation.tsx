@@ -1,8 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Ban, Loader2, Lock, LockOpen, MicOff, Shield, UserX, X } from "lucide-react";
+import {
+  Ban,
+  EyeOff,
+  Globe,
+  Loader2,
+  Lock,
+  LockOpen,
+  MicOff,
+  RotateCcw,
+  Shield,
+  UserX,
+  X,
+} from "lucide-react";
 
 export interface ParticipantView {
   userId: string;
@@ -10,6 +22,15 @@ export interface ParticipantView {
   role: "host" | "guest";
   isMuted: boolean;
 }
+
+export interface BanView {
+  userId: string;
+  username: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+type Visibility = "public" | "unlisted" | "private";
 
 interface RoomModerationProps {
   open: boolean;
@@ -21,14 +42,22 @@ interface RoomModerationProps {
   isLocked: boolean;
   chatMode: "all" | "hosts" | "muted";
   addMode: "all" | "hosts";
+  visibility: Visibility;
   onRefresh: () => void;
   onError?: (message: string) => void;
 }
 
+const VISIBILITY_OPTIONS: { id: Visibility; label: string; hint: string; icon: typeof Globe }[] = [
+  { id: "public", label: "Public", hint: "Listed on the home page", icon: Globe },
+  { id: "unlisted", label: "Unlisted", hint: "Link only", icon: EyeOff },
+  { id: "private", label: "Private", hint: "Invite required", icon: Lock },
+];
+
 /**
  * Host-only room moderation: remove/ban participants, mute them in the call,
- * lock the room, and restrict chat or media-adding. All of these are enforced
- * server-side by /api/rooms/[roomId]/moderation.
+ * lock the room, restrict chat or media-adding, change visibility and unban
+ * people. All of these are enforced server-side by
+ * /api/rooms/[roomId]/moderation.
  */
 export function RoomModeration({
   open,
@@ -40,10 +69,31 @@ export function RoomModeration({
   isLocked,
   chatMode,
   addMode,
+  visibility,
   onRefresh,
   onError,
 }: RoomModerationProps) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [bans, setBans] = useState<BanView[]>([]);
+  const [loadingBans, setLoadingBans] = useState(false);
+
+  const loadBans = useCallback(async () => {
+    setLoadingBans(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/moderation`, { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setBans(data.bans || []);
+    } catch {
+      /* non-fatal: the list just stays empty */
+    } finally {
+      setLoadingBans(false);
+    }
+  }, [roomId]);
+
+  // Refresh the ban list whenever the panel opens.
+  useEffect(() => {
+    if (open && isHost) void loadBans();
+  }, [open, isHost, loadBans]);
 
   const act = async (key: string, body: unknown) => {
     setBusy(key);
@@ -59,6 +109,9 @@ export function RoomModeration({
         return;
       }
       onRefresh();
+      if (body && typeof body === "object" && (body as { action?: string }).action === "unban") {
+        void loadBans();
+      }
     } catch {
       onError?.("Network error.");
     } finally {
@@ -129,6 +182,35 @@ export function RoomModeration({
                   {busy === "end" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                   End session
                 </button>
+              </div>
+
+              {/* Visibility */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1AA]">Room visibility</label>
+                <div className="grid grid-cols-3 gap-1 bg-[#090909] border border-[#27272A] rounded-xl p-1">
+                  {VISIBILITY_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    const active = visibility === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => act(`visibility-${option.id}`, { action: "set-visibility", visibility: option.id })}
+                        disabled={busy === `visibility-${option.id}`}
+                        aria-pressed={active}
+                        title={option.hint}
+                        className={`h-9 rounded-lg text-[10px] font-bold inline-flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                          active ? "bg-[#10B981]/15 text-[#10B981]" : "text-[#A1A1AA] hover:text-white"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-[#71717A] leading-relaxed">
+                  {VISIBILITY_OPTIONS.find((o) => o.id === visibility)?.hint}. Changing visibility takes effect immediately.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -209,6 +291,46 @@ export function RoomModeration({
                         className="h-7 w-7 rounded-full border border-[#EF4444]/30 text-[#F87171] flex items-center justify-center cursor-pointer disabled:opacity-60"
                       >
                         <Ban className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Banned users */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-[#A1A1AA] flex items-center gap-1.5">
+                  Banned ({bans.length})
+                  {loadingBans && <Loader2 className="w-3 h-3 animate-spin" />}
+                </label>
+                {!loadingBans && bans.length === 0 && (
+                  <p className="text-[11px] text-[#71717A]">Nobody is banned from this room.</p>
+                )}
+                <div className="space-y-1.5">
+                  {bans.map((b) => (
+                    <div
+                      key={b.userId}
+                      className="flex items-center gap-2 bg-[#090909] border border-[#EF4444]/15 rounded-xl px-3 py-2"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-[#EF4444]/10 text-[#F87171] text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {b.username.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[11px] text-white truncate">{b.username}</span>
+                        {b.reason && <span className="block text-[9px] text-[#71717A] truncate">{b.reason}</span>}
+                      </span>
+                      <button
+                        onClick={() => act(`unban-${b.userId}`, { action: "unban", userId: b.userId })}
+                        disabled={busy === `unban-${b.userId}`}
+                        aria-label={`Unban ${b.username}`}
+                        className="h-7 px-2.5 rounded-full border border-[#27272A] text-[#A1A1AA] hover:text-white text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer disabled:opacity-60"
+                      >
+                        {busy === `unban-${b.userId}` ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
+                        Unban
                       </button>
                     </div>
                   ))}

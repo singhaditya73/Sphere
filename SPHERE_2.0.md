@@ -142,13 +142,27 @@ intentionally not replayed). See `README.md` for the setup commands.
 
 ## Known gaps (honest status)
 
-- The moderation API supports **unban**, but there is no banned-list UI yet, so
-  the host can only unban through the API. No unban button is shown (nothing
-  fake is rendered).
-- Room **visibility cannot be changed after creation** — it is chosen at create
-  time. Existing rooms defaulted to `unlisted`, so the public directory starts
-  empty until a host creates a public room.
 - The call/mic integration is code-complete and type-checked, but a real
   multi-device LiveKit call has not been exercised here.
-- Recaps are exposed via `/api/rooms/[roomId]/recap` but have no dedicated UI
-  yet — the data is available for a future recap screen.
+- The AI companion and Groq provider are wired and unit-tested against a mocked
+  endpoint, but a live Groq call has not been exercised here.
+
+## UI coverage (Sphere 2.0 surface)
+
+- **Host controls** (`components/room-moderation.tsx`): lock, end session,
+  visibility, chat mode, add mode, per-participant mute/remove/ban, and a
+  **banned-users list with one-click unban** (`GET` + `unban` on
+  `/api/rooms/[roomId]/moderation`).
+- **Room settings after creation**: visibility (`public` / `unlisted` /
+  `private`) can now be changed live from the host panel via the
+  `set-visibility` action.
+- **Session recap** (`/room/[roomId]/recap`): a dedicated screen rendering the
+  `/recap` API — session length, items queued/played, participants, messages,
+  most-upvoted tracks, artists on rotation and top contributors.
+- **Party Mode** (`/room/[roomId]/display`): floating reaction animations,
+  animated equalizer, marquee for long titles, gradient progress, poll/battle
+  bars and auto-hiding chrome in fullscreen.
+- **Dashboard**: at-a-glance stats (hosting / joined / saved) and a
+  join-by-code input alongside Create Room.
+- **Landing page**: hero and feature grid updated for universal media, calling,
+  Party Mode, polls/battles, the AI companion and host controls.
