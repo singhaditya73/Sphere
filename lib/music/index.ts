@@ -13,6 +13,7 @@ export {
   formatDuration,
   isValidVideoId,
   normalizeQuery,
+  filterTracksByCategory,
 } from "./youtube-parse.ts";
 
 type EnvLike = Record<string, string | undefined>;

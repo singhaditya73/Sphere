@@ -8,13 +8,20 @@ BeatNet is a collaborative music streaming platform where users join rooms, sear
 
 - 🎪 **Room-Based Sessions** - Create or join music rooms
 - 🔎 **Native Song Search** - Find tracks inside a room with the Add Song dialog (keyless iTunes previews, or full-length YouTube with an API key)
+- 📺 **Universal Media** - One shared queue for music, music videos and general videos (filter by Music / Videos / All media)
 - 🔗 **Multi-Platform** - Support for YouTube and Spotify links
 - 👍 **Democratic Voting** - Upvote songs to influence the queue
 - 🎵 **Smart Queue** - Songs ordered by popularity
-- 👑 **Host Controls** - Room creators can manage playback
+- 👑 **Host Controls** - Room creators can manage playback, kick/ban, mute, lock the room and restrict chat or adding
+- 🔐 **Private Rooms & Invites** - Public / unlisted / private visibility, QR + link invites, rotate/revoke
+- 📹 **Integrated Calls** - Optional LiveKit audio/video calls with screen sharing (host-gated, no recording)
+- 😀 **Reactions, Polls & Battles** - Live emoji reactions (kept separate from upvotes), polls and song battles
+- 🤖 **AI Companion** - Suggests real media via the search provider (never auto-queues anything)
+- 📺 **Party Mode** - A TV-friendly, read-only display with QR join and configurable privacy toggles
 - 🔄 **Real-time Updates** - Live queue and vote updates
-- 🔐 **Secure Auth** - Google OAuth integration
 - 📱 **Responsive Design** - Works on all devices
+
+See **[SPHERE_2.0.md](./SPHERE_2.0.md)** for the full feature breakdown, environment setup and phased checklist.
 
 ## 🚀 Quick Start
 
@@ -36,9 +43,11 @@ npm install
 # Set up environment variables (see .env.example)
 # DATABASE_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET
 # YOUTUBE_API_KEY (optional — full-length YouTube; otherwise keyless iTunes previews)
+# LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET (optional — in-room calls)
+# AI_API_KEY (+ optional AI_BASE_URL / AI_MODEL) (optional — AI room companion)
 
-# Run database migrations
-npx prisma migrate dev --name add_rooms
+# Sync the database schema with Prisma (see SPHERE_2.0.md for notes)
+npx prisma db push
 
 # Generate Prisma client
 npx prisma generate
@@ -72,6 +81,9 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 - **UI**: Tailwind CSS + shadcn/ui
 - **Validation**: Zod
 - **Music Search**: keyless iTunes Search API by default; YouTube Data API v3 when keyed (server-side provider abstraction)
+- **Calls**: LiveKit (`livekit-client` + `livekit-server-sdk`), server-minted room tokens
+- **QR codes**: generated server-side with `qrcode` (no third-party image service)
+- **AI companion**: any OpenAI-compatible endpoint, server-side only
 - **Tests**: Node.js built-in test runner (`npm test`)
 
 ## 📁 Project Structure

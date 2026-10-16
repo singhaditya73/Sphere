@@ -8,11 +8,13 @@ import {
   buildVideosUrl,
   classifyYouTubeError,
   extractVideoIds,
+  filterTracksByCategory,
   isValidVideoId,
   normalizeQuery,
   parseVideoItems,
   rankTracks,
 } from "./youtube-parse.ts";
+import { normalizeSearchCategory } from "../media.ts";
 
 export const DEFAULT_SEARCH_LIMIT = 12;
 export const MAX_SEARCH_LIMIT = 25;
@@ -60,19 +62,24 @@ export class YouTubeMusicProvider implements MusicProvider {
     }
 
     const limit = clampLimit(options.limit);
-    const cacheKey = `${normalized.toLowerCase()}::${limit}`;
+    // `undefined` keeps the legacy music-first behaviour; an explicit category
+    // scopes the result set (music vs general video vs everything).
+    const category = options.category ? normalizeSearchCategory(options.category) : null;
+    const cacheKey = `${normalized.toLowerCase()}::${limit}::${category ?? "default"}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
 
-    let ids = await this.searchVideoIds(normalized, limit, true, options.signal);
-    if (ids.length === 0) {
+    const musicOnly = category !== "video" && category !== "all";
+    let ids = await this.searchVideoIds(normalized, limit, musicOnly, options.signal);
+    if (ids.length === 0 && musicOnly) {
       // Nothing in the Music category — widen once before giving up.
       ids = await this.searchVideoIds(normalized, limit, false, options.signal);
     }
     if (ids.length === 0) return [];
 
     const tracks = await this.fetchTrackDetails(ids, options.signal);
-    const ranked = rankTracks(tracks).slice(0, limit);
+    const scoped = category ? filterTracksByCategory(tracks, category) : tracks;
+    const ranked = rankTracks(scoped).slice(0, limit);
     this.cache.set(cacheKey, ranked);
     return ranked;
   }

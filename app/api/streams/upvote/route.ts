@@ -1,54 +1,41 @@
 import { prismaClient } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { assertCanVote, getSessionUser } from "@/lib/room-access";
+
+export const dynamic = "force-dynamic";
 
 const upvoteSchema = z.object({
-  streamId: z.string(),
+  streamId: z.string().min(1).max(128),
 });
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const user = await prismaClient.user.findFirst({
-    where: {
-      email: session?.user?.email,
-    },
-  });
-
+  const user = await getSessionUser();
   if (!user) {
-    return NextResponse.json(
-      { message: "Unauthenticated" },
-      { status: 403 }
-    );
+    return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
   try {
     const data = upvoteSchema.parse(await req.json());
 
-    // Use upsert to avoid duplicate constraint errors
+    const allowed = await assertCanVote(data.streamId, user);
+    if (!allowed.ok) {
+      return NextResponse.json({ message: allowed.message, code: allowed.code }, { status: allowed.status });
+    }
+
+    // Upsert avoids duplicate-constraint errors when the user double-taps.
     await prismaClient.upvote.upsert({
-      where: {
-        userId_streamId: {
-          userId: user.id,
-          streamId: data.streamId,
-        },
-      },
-      create: {
-        userId: user.id,
-        streamId: data.streamId,
-      },
-      update: {}, // Already exists, do nothing
+      where: { userId_streamId: { userId: user.id, streamId: data.streamId } },
+      create: { userId: user.id, streamId: data.streamId },
+      update: {},
     });
 
-    return NextResponse.json(
-      { message: "Upvoted successfully" },
-      { status: 200 }
-    );
-  } catch (_e) {
-    return NextResponse.json(
-      { message: "Error while upvoting" },
-      { status: 403 }
-    );
+    return NextResponse.json({ message: "Upvoted successfully" }, { status: 200 });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json({ message: "Invalid stream id." }, { status: 400 });
+    }
+    console.error("Upvote error:", e);
+    return NextResponse.json({ message: "Error while upvoting" }, { status: 500 });
   }
 }

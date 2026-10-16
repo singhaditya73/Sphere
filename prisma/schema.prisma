@@ -29,32 +29,88 @@ enum StreamType {
   Itunes
 }
 
+// Who can see / find a room.
+//  public   — listed in the directory and joinable by anyone signed in
+//  unlisted — joinable only with the link or room code (default)
+//  private  — joinable only with a valid invitation token
+enum RoomVisibility {
+  public
+  unlisted
+  private
+}
+
+// Who may post chat messages.
+enum ChatMode {
+  all
+  hosts
+  muted
+}
+
+// Who may add media to the queue.
+enum AddMode {
+  all
+  hosts
+}
+
+enum ParticipantRole {
+  host
+  guest
+}
+
 model User {
-  id       String    @id @default(cuid())
-  email    String?   @unique
-  username String?   @unique
-  provider Provider
-  streams  Stream[]
-  upvote   Upvote[]
-  rooms    Room[]
-  messages Message[]
+  id             String            @id @default(cuid())
+  email          String?           @unique
+  username       String?           @unique
+  provider       Provider
+  streams        Stream[]
+  upvote         Upvote[]
+  rooms          Room[]
+  messages       Message[]
+  participations RoomParticipant[]
+  invitesCreated RoomInvite[]      @relation("InviteCreator")
+  pollsCreated   Poll[]            @relation("PollCreator")
+  pollVotes      PollVote[]
+  battlesCreated Battle[]          @relation("BattleCreator")
+  battleVotes    BattleVote[]
+  reactions      Reaction[]
+  bansCreated    RoomBan[]         @relation("BanCreator")
+  bansReceived   RoomBan[]         @relation("BanTarget")
+  favorites      RoomFavorite[]
 }
 
 model Room {
-  id                String    @id @default(cuid())
-  code              String    @unique  // Short shareable code like BEAT-K7M2
+  id                String            @id @default(cuid())
+  code              String            @unique // Short shareable code like BEAT-K7M2
   name              String
-  mode              RoomMode  @default(dj)
+  mode              RoomMode          @default(dj)
   hostId            String
-  host              User      @relation(fields: [hostId], references: [id])
+  host              User              @relation(fields: [hostId], references: [id])
   streams           Stream[]
   messages          Message[]
   currentStreamId   String?
-  isActive          Boolean   @default(true)
-  isPlaying         Boolean   @default(false)
-  playbackPosition  Float     @default(0)
+  isActive          Boolean           @default(true)
+  isPlaying         Boolean           @default(false)
+  playbackPosition  Float             @default(0)
   playbackStartedAt DateTime?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime          @default(now())
+
+  // Sphere 2.0 social/privacy controls
+  visibility   RoomVisibility @default(unlisted)
+  description  String?
+  category     String?
+  isLocked     Boolean        @default(false)
+  chatMode     ChatMode       @default(all)
+  addMode      AddMode        @default(all)
+  callsEnabled Boolean        @default(true)
+  endedAt      DateTime?
+
+  participants RoomParticipant[]
+  invites      RoomInvite[]
+  bans         RoomBan[]
+  reactions    Reaction[]
+  polls        Poll[]
+  battles      Battle[]
+  favorites    RoomFavorite[]
 }
 
 model Stream {
@@ -69,6 +125,9 @@ model Stream {
   bigImg      String     @default("")
   // Provider-hosted 30s audio preview (used by keyless providers, e.g. iTunes).
   previewUrl  String?
+  // Universal-media metadata: "music" | "video" | "podcast" | "trailer" ...
+  mediaType   String     @default("music")
+  category    String?
   active      Boolean    @default(false)
   played      Boolean    @default(false)
   upvotes     Upvote[]
@@ -77,6 +136,8 @@ model Stream {
   roomId      String
   room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
+
+  battleEntries BattleEntry[]
 
   // Speeds up duplicate detection when adding a track to a room's queue.
   @@index([roomId, extractedId])
@@ -100,5 +161,160 @@ model Message {
   roomId    String
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
 }
 
+/// Presence: one row per user seen in a room, refreshed by the poll heartbeat.
+model RoomParticipant {
+  id         String          @id @default(cuid())
+  roomId     String
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       ParticipantRole @default(guest)
+  isMuted    Boolean         @default(false)
+  joinedAt   DateTime        @default(now())
+  lastSeenAt DateTime        @default(now())
+
+  @@unique([roomId, userId])
+  @@index([roomId, lastSeenAt])
+}
+
+/// Shareable invitation token. Tokens can expire, be revoked, and be rotated.
+model RoomInvite {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  roomId      String
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation("InviteCreator", fields: [createdById], references: [id])
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  uses        Int       @default(0)
+  maxUses     Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([roomId])
+}
+
+/// A user removed from a room. Bans block re-joining until lifted.
+model RoomBan {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation("BanTarget", fields: [userId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation("BanCreator", fields: [createdById], references: [id])
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+}
+
+/// Ephemeral emoji reactions. Deliberately separate from queue upvotes.
+model Reaction {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  streamId  String?
+  createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
+}
+
+model Poll {
+  id          String       @id @default(cuid())
+  roomId      String
+  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User         @relation("PollCreator", fields: [createdById], references: [id])
+  question    String
+  isClosed    Boolean      @default(false)
+  closesAt    DateTime?
+  createdAt   DateTime     @default(now())
+  options     PollOption[]
+  votes       PollVote[]
+
+  @@index([roomId, createdAt])
+}
+
+model PollOption {
+  id       String     @id @default(cuid())
+  pollId   String
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  label    String
+  position Int        @default(0)
+  votes    PollVote[]
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([pollId, userId])
+}
+
+/// A song/video battle compares queued items. Votes are distinct from upvotes.
+model Battle {
+  id          String        @id @default(cuid())
+  roomId      String
+  room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User          @relation("BattleCreator", fields: [createdById], references: [id])
+  isClosed    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  entries     BattleEntry[]
+  votes       BattleVote[]
+
+  @@index([roomId, createdAt])
+}
+
+model BattleEntry {
+  id       String       @id @default(cuid())
+  battleId String
+  battle   Battle       @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  streamId String
+  stream   Stream       @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  position Int          @default(0)
+  votes    BattleVote[]
+
+  @@unique([battleId, streamId])
+}
+
+model BattleVote {
+  id        String      @id @default(cuid())
+  battleId  String
+  battle    Battle      @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  entryId   String
+  entry     BattleEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([battleId, userId])
+}
+
+/// A saved / favourite room for a user.
+model RoomFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roomId])
+  @@index([userId])
+}

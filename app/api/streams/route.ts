@@ -1,12 +1,11 @@
 import { prismaClient } from "@/lib/db";
-import { isRoomCode } from "@/lib/room-code";
 import { findDuplicateStream } from "@/lib/queue";
 import { getMusicProviderById } from "@/lib/music";
 import type { MusicProviderId, Track } from "@/lib/music";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { getSessionUser, loadRoomContext } from "@/lib/room-access";
+import { canAddMedia } from "@/lib/room-policy";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import * as youtubesearchapi from "youtube-search-api";
@@ -106,16 +105,20 @@ interface StreamMetadata {
   streamType: "Youtube" | "Spotify" | "Itunes";
   extractedId: string;
   previewUrl: string | null;
+  /** Universal-media kind stored on the stream (music/video/...). */
+  mediaType: string;
+  /** Provider category id/label when known. */
+  category: string | null;
 }
+
+type BaseMetadata = Pick<StreamMetadata, "title" | "artist" | "duration" | "smallImg" | "bigImg">;
 
 /**
  * Resolve YouTube metadata for a video id, preferring the official provider
  * (which also yields duration/channel) and falling back to oEmbed when the
  * provider is unavailable.
  */
-async function fetchYoutubeMetadata(
-  extractedId: string
-): Promise<Omit<StreamMetadata, "streamType" | "extractedId" | "previewUrl">> {
+async function fetchYoutubeMetadata(extractedId: string): Promise<BaseMetadata> {
   try {
     const res = await youtubesearchapi.GetVideoDetails(extractedId);
     if (res && typeof res === "object") {
@@ -187,24 +190,43 @@ function streamResponse(result: { id: string; duplicate: boolean }) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prismaClient.user.findUnique({
-      where: { email: session.user.email },
-    });
-
+    const user = await getSessionUser();
     if (!user) {
-       return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const parseResult = CreateStreamSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { message: "Provide a valid room, and either a YouTube/Spotify URL or a provider track id." },
+        { status: 400 }
       );
     }
+    const data = parseResult.data;
+
+    // Authorization: the room must exist and let this user add media. This
+    // replaces the old "resolve room id only" logic so locked rooms, host-only
+    // add modes and bans are enforced server-side.
+    const access = await loadRoomContext(data.roomId, { requireUser: true });
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message, code: access.code }, { status: access.status });
+    }
+    const { ctx } = access;
+    if (ctx.isBanned) {
+      return NextResponse.json({ message: "You have been removed from this room." }, { status: 403 });
+    }
+    if (!canAddMedia(ctx.room, ctx.isHost)) {
+      return NextResponse.json(
+        {
+          message: ctx.room.isLocked
+            ? "This room is locked. The host must unlock it before media can be added."
+            : "Only the host can add media right now.",
+        },
+        { status: 403 }
+      );
+    }
+    const resolvedRoomId = ctx.room.id;
 
     const now = Date.now();
     const rateKey = user.id;
@@ -222,37 +244,6 @@ export async function POST(req: NextRequest) {
       userData.lastRequest = now;
     }
     rateLimitStore.set(rateKey, userData);
-
-    const body = await req.json();
-    const parseResult = CreateStreamSchema.safeParse(body);
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { message: "Provide a valid room, and either a YouTube/Spotify URL or a provider track id." },
-        { status: 400 }
-      );
-    }
-    const data = parseResult.data;
-
-    // Resolve room code to actual database ID before touching the provider.
-    let resolvedRoomId = data.roomId;
-    if (isRoomCode(data.roomId)) {
-      const room = await prismaClient.room.findFirst({
-        where: { code: data.roomId.toUpperCase(), isActive: true },
-        select: { id: true },
-      });
-      if (!room) {
-        return NextResponse.json({ message: "Room not found" }, { status: 404 });
-      }
-      resolvedRoomId = room.id;
-    } else {
-      const room = await prismaClient.room.findFirst({
-        where: { id: data.roomId, isActive: true },
-        select: { id: true },
-      });
-      if (!room) {
-        return NextResponse.json({ message: "Room not found" }, { status: 404 });
-      }
-    }
 
     // Resolve the queue source. Searched tracks carry a provider id; everything
     // else arrives as a pasted URL.
@@ -276,11 +267,19 @@ export async function POST(req: NextRequest) {
           streamType: "Itunes",
           extractedId: data.trackId,
           previewUrl: details.previewUrl ?? null,
+          mediaType: details.mediaType ?? "music",
+          category: details.category ?? null,
         };
       } else {
         const trackId = data.trackId;
         // Reuse provider metadata when available; otherwise fall back to oEmbed.
         const details = await tryGetProviderTrack("youtube", trackId);
+        if (details && details.available === false) {
+          return NextResponse.json(
+            { message: details.unavailableReason || "This video cannot be played here." },
+            { status: 422 }
+          );
+        }
         const base = details
           ? {
               title: details.title,
@@ -291,7 +290,14 @@ export async function POST(req: NextRequest) {
             }
           : await fetchYoutubeMetadata(trackId);
         resolvedUrl = `https://www.youtube.com/watch?v=${trackId}`;
-        metadata = { ...base, streamType: "Youtube", extractedId: trackId, previewUrl: null };
+        metadata = {
+          ...base,
+          streamType: "Youtube",
+          extractedId: trackId,
+          previewUrl: null,
+          mediaType: details?.mediaType ?? "video",
+          category: details?.category ?? null,
+        };
       }
     } else {
       resolvedUrl = data.url;
@@ -300,7 +306,14 @@ export async function POST(req: NextRequest) {
 
       if (ytId) {
         const base = await fetchYoutubeMetadata(ytId);
-        metadata = { ...base, streamType: "Youtube", extractedId: ytId, previewUrl: null };
+        metadata = {
+          ...base,
+          streamType: "Youtube",
+          extractedId: ytId,
+          previewUrl: null,
+          mediaType: "video",
+          category: null,
+        };
       } else if (spotifyData) {
         let title = `${spotifyData.type.charAt(0).toUpperCase() + spotifyData.type.slice(1)} - Spotify`;
         let smallImg = "";
@@ -328,6 +341,8 @@ export async function POST(req: NextRequest) {
           streamType: "Spotify",
           extractedId: spotifyData.id,
           previewUrl: null,
+          mediaType: "music",
+          category: null,
         };
       } else {
         return NextResponse.json({ message: "URL must be a valid YouTube or Spotify link" }, { status: 400 });
@@ -365,6 +380,8 @@ export async function POST(req: NextRequest) {
           smallImg: metadata.smallImg,
           bigImg: metadata.bigImg,
           previewUrl: metadata.previewUrl ?? undefined,
+          mediaType: metadata.mediaType,
+          category: metadata.category ?? undefined,
           roomId: resolvedRoomId,
         },
       });

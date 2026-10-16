@@ -1,69 +1,58 @@
 import { prismaClient } from "@/lib/db";
-import { isRoomCode } from "@/lib/room-code";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { loadRoomContext } from "@/lib/room-access";
+import { canChat } from "@/lib/room-policy";
+import { FixedWindowRateLimiter } from "@/lib/rate-limit";
+
+export const dynamic = "force-dynamic";
 
 const SendMessageSchema = z.object({
-  text: z.string().min(1).max(500),
+  text: z.string().trim().min(1).max(500),
 });
 
-// Resolve roomId param (could be code like BEAT-XXXX or actual cuid)
-async function resolveRoomId(roomIdParam: string): Promise<string | null> {
-  const whereClause = isRoomCode(roomIdParam)
-    ? { code: roomIdParam.toUpperCase(), isActive: true }
-    : { id: roomIdParam, isActive: true };
+// Chat is rate limited per user so a room cannot be flooded.
+const chatLimiter = new FixedWindowRateLimiter(20, 60 * 1000);
 
-  const room = await prismaClient.room.findFirst({
-    where: whereClause,
-    select: { id: true },
-  });
-
-  return room?.id ?? null;
-}
-
-// Get messages for a room (last 50)
+// Get the most recent messages for a room (chronological order for the UI).
 export async function GET(
   req: NextRequest,
   props: { params: Promise<{ roomId: string }> }
 ) {
   try {
     const params = await props.params;
-    const roomId = await resolveRoomId(params.roomId);
-
-    if (!roomId) {
-      return NextResponse.json({ message: "Room not found" }, { status: 404 });
+    const inviteToken = req.nextUrl.searchParams.get("invite");
+    const access = await loadRoomContext(params.roomId, { inviteToken });
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message, code: access.code }, { status: access.status });
+    }
+    if (access.ctx.isBanned) {
+      return NextResponse.json({ message: "You have been removed from this room." }, { status: 403 });
     }
 
-    const messages = await prismaClient.message.findMany({
-      where: { roomId },
-      include: {
-        user: {
-          select: {
-            email: true,
-            username: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "asc" },
+    const recent = await prismaClient.message.findMany({
+      where: { roomId: access.ctx.room.id },
+      include: { user: { select: { email: true, username: true } } },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
 
     return NextResponse.json({
-      messages: messages.map((m) => ({
-        id: m.id,
-        text: m.text,
-        userEmail: m.user?.email || null,
-        username: m.user?.username || null,
-        createdAt: m.createdAt,
-      })),
+      messages: recent
+        .slice()
+        .reverse()
+        .map((m) => ({
+          id: m.id,
+          text: m.text,
+          // Raw emails are never returned — only a display name.
+          displayName: m.user?.username || m.user?.email?.split("@")[0] || "User",
+          username: m.user?.username || null,
+          createdAt: m.createdAt,
+        })),
     });
   } catch (e) {
-    return NextResponse.json(
-      { message: "Error fetching messages", error: String(e) },
-      { status: 500 }
-    );
+    console.error("Fetch messages error:", e);
+    return NextResponse.json({ message: "Error fetching messages" }, { status: 500 });
   }
 }
 
@@ -73,58 +62,58 @@ export async function POST(
   props: { params: Promise<{ roomId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await prismaClient.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
     const params = await props.params;
-    const roomId = await resolveRoomId(params.roomId);
+    const access = await loadRoomContext(params.roomId, { requireUser: true });
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message, code: access.code }, { status: access.status });
+    }
+    const { ctx } = access;
+    const user = ctx.user!;
 
-    if (!roomId) {
-      return NextResponse.json({ message: "Room not found" }, { status: 404 });
+    if (ctx.isBanned) {
+      return NextResponse.json({ message: "You have been removed from this room." }, { status: 403 });
+    }
+    if (!canChat(ctx.room, ctx.isHost)) {
+      return NextResponse.json(
+        {
+          message: ctx.room.isLocked
+            ? "Chat is paused while this room is locked."
+            : "Only the host can chat right now.",
+        },
+        { status: 403 }
+      );
     }
 
-    const body = await req.json();
-    const data = SendMessageSchema.parse(body);
+    const rate = chatLimiter.check(user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { message: "You're sending messages too quickly. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const data = SendMessageSchema.parse(await req.json());
 
     const message = await prismaClient.message.create({
-      data: {
-        text: data.text,
-        userId: user.id,
-        roomId,
-      },
-      include: {
-        user: {
-          select: { 
-            email: true,
-            username: true,
-          },
-        },
-      },
+      data: { text: data.text, userId: user.id, roomId: ctx.room.id },
+      include: { user: { select: { email: true, username: true } } },
     });
 
     return NextResponse.json({
       message: {
         id: message.id,
         text: message.text,
-        userEmail: message.user?.email || null,
+        // Raw emails are never returned — only a display name.
+        displayName: message.user?.username || message.user?.email?.split("@")[0] || "User",
         username: message.user?.username || null,
         createdAt: message.createdAt,
       },
     });
   } catch (e) {
-    return NextResponse.json(
-      { message: "Error sending message", error: String(e) },
-      { status: 500 }
-    );
+    if (e instanceof z.ZodError) {
+      return NextResponse.json({ message: "Message must be 1–500 characters." }, { status: 400 });
+    }
+    console.error("Send message error:", e);
+    return NextResponse.json({ message: "Error sending message" }, { status: 500 });
   }
 }

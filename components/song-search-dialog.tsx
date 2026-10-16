@@ -28,7 +28,17 @@ export interface TrackResult {
   /** Provider-hosted audio preview (keyless providers such as iTunes). */
   previewUrl?: string | null;
   source: string;
+  /** Universal-media kind: "music" | "video" | ... */
+  mediaType?: string;
+  /** Provider category id/label when reported. */
+  category?: string | null;
+  /** False when the provider says the item can no longer be played. */
+  available?: boolean;
+  /** Human explanation when unavailable. */
+  unavailableReason?: string | null;
 }
+
+export type SearchCategory = "music" | "video" | "all";
 
 export interface AddedTrackInfo {
   trackId: string;
@@ -59,6 +69,7 @@ export function SongSearchDialog({
   onAdded,
 }: SongSearchDialogProps) {
   const [tab, setTab] = useState<"search" | "link">("search");
+  const [category, setCategory] = useState<SearchCategory>("music");
 
   // Search tab
   const [query, setQuery] = useState("");
@@ -118,9 +129,10 @@ export function SongSearchDialog({
     setStatus("loading");
     setErrorMessage("");
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(term)}`, {
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(term)}&category=${category}`,
+        { signal: controller.signal }
+      );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setStatus("error");
@@ -141,7 +153,7 @@ export function SongSearchDialog({
       setErrorRetryable(true);
       setResults([]);
     }
-  }, []);
+  }, [category]);
 
   // Fetch whenever the debounced query settles.
   useEffect(() => {
@@ -364,6 +376,30 @@ export function SongSearchDialog({
                   </div>
                 </div>
 
+                {/* Media category filter — one search endpoint, music/video/all */}
+                <div className="px-5 pt-3">
+                  <div className="grid grid-cols-3 gap-1 bg-[#090909] border border-[#27272A] rounded-xl p-1">
+                    {([
+                      { id: "music", label: "Music" },
+                      { id: "video", label: "Videos" },
+                      { id: "all", label: "All media" },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setCategory(option.id)}
+                        aria-pressed={category === option.id}
+                        className={`h-7 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                          category === option.id
+                            ? "bg-[#10B981]/15 text-[#10B981]"
+                            : "text-[#A1A1AA] hover:text-white"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Results area */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 min-h-[180px]">
                   {status === "idle" && (
@@ -419,6 +455,7 @@ export function SongSearchDialog({
                         const adding = addingTrackId === track.id;
                         const rowError = rowErrors[track.id];
                         const selected = index === selectedIndex;
+                        const unavailable = track.available === false;
                         return (
                           <li key={track.id} role="option" aria-selected={selected}>
                             <div
@@ -440,23 +477,41 @@ export function SongSearchDialog({
                                   ) : track.durationSeconds != null ? (
                                     <span className="text-[#71717A]"> · {formatDuration(track.durationSeconds)}</span>
                                   ) : null}
+                                  {track.mediaType === "video" && (
+                                    <span className="text-[#818CF8]"> · Video</span>
+                                  )}
                                 </p>
+                                {unavailable && (
+                                  <p className="text-[10px] text-[#F59E0B] mt-0.5 truncate">
+                                    {track.unavailableReason || "Unavailable for playback"}
+                                  </p>
+                                )}
                                 {rowError && (
                                   <p className="text-[10px] text-[#F87171] mt-0.5 truncate">{rowError}</p>
                                 )}
                               </div>
                               <button
                                 onClick={() => void handleAdd(track)}
-                                disabled={queued || adding}
-                                aria-label={queued ? `${track.title} already added` : `Add ${track.title} to queue`}
+                                disabled={queued || adding || unavailable}
+                                aria-label={
+                                  unavailable
+                                    ? `${track.title} is unavailable`
+                                    : queued
+                                    ? `${track.title} already added`
+                                    : `Add ${track.title} to queue`
+                                }
                                 className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-bold flex items-center gap-1.5 transition-colors ${
                                   queued
                                     ? "bg-[#10B981]/15 text-[#10B981] cursor-default"
+                                    : unavailable
+                                    ? "bg-[#27272A] text-[#71717A] cursor-not-allowed"
                                     : "bg-[#10B981] hover:bg-[#10B981]/90 text-white cursor-pointer"
                                 } disabled:opacity-80`}
                               >
                                 {adding ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : unavailable ? (
+                                  <>Unavailable</>
                                 ) : queued ? (
                                   <>
                                     <Check className="w-3.5 h-3.5" /> Added

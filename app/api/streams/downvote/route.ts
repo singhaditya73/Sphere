@@ -1,48 +1,39 @@
 import { prismaClient } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import {z} from 'zod'
-import { authOptions } from "@/lib/auth";
+import { z } from "zod";
+import { assertCanVote, getSessionUser } from "@/lib/room-access";
 
-const upvoteSchema = z.object({
-    streamId: z.string()
-})
+export const dynamic = "force-dynamic";
 
-export async function POST (req:NextRequest){
-    const session = await getServerSession(authOptions);
-    const user = await prismaClient.user.findFirst({
-        where:{
-            email:session?.user?.email
-        }
+const downvoteSchema = z.object({
+  streamId: z.string().min(1).max(128),
+});
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
+  }
+
+  try {
+    const data = downvoteSchema.parse(await req.json());
+
+    const allowed = await assertCanVote(data.streamId, user);
+    if (!allowed.ok) {
+      return NextResponse.json({ message: allowed.message, code: allowed.code }, { status: allowed.status });
+    }
+
+    // Removing a vote that is not there is a no-op, not an error.
+    await prismaClient.upvote.deleteMany({
+      where: { userId: user.id, streamId: data.streamId },
     });
 
-    if(!user){
-        return NextResponse.json({
-            message:"Unauthenticated"
-        }, {
-            status:403
-        })
+    return NextResponse.json({ message: "Downvoted successfully" }, { status: 200 });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json({ message: "Invalid stream id." }, { status: 400 });
     }
-    try{
-        const data = upvoteSchema.parse(await req.json());
-        await prismaClient.upvote.delete({
-            where:{
-                userId_streamId:{
-                userId: user.id,
-                streamId:data.streamId
-            }
-            }
-        })
-        return NextResponse.json({
-            message:"Downvoted successfully"
-        }, {
-            status:200
-        })
-    } catch(_e){
-        return NextResponse.json({
-            message:"error while downvoting"
-        }, {
-            status:403
-        })
-    }
+    console.error("Downvote error:", e);
+    return NextResponse.json({ message: "Error while downvoting" }, { status: 500 });
+  }
 }

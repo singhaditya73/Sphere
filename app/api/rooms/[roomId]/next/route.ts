@@ -1,85 +1,43 @@
 import { prismaClient } from "@/lib/db";
-import { isRoomCode } from "@/lib/room-code";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { loadRoomContext } from "@/lib/room-access";
 
-// Play next song in queue
+export const dynamic = "force-dynamic";
+
+// Advance to the next queue item. Host-only: skipping is a playback control.
 export async function POST(
   req: NextRequest,
   props: { params: Promise<{ roomId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const user = await prismaClient.user.findFirst({
-      where: {
-        email: session?.user?.email ?? "",
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { message: "Unauthenticated" },
-        { status: 403 }
-      );
-    }
-
     const params = await props.params;
-    const roomIdParam = params.roomId;
+    const access = await loadRoomContext(params.roomId, { requireUser: true });
+    if (!access.ok) {
+      return NextResponse.json({ message: access.message, code: access.code }, { status: access.status });
+    }
+    const { ctx } = access;
 
-    // Resolve room code to actual database ID
-    const whereClause = isRoomCode(roomIdParam)
-      ? { code: roomIdParam.toUpperCase(), isActive: true }
-      : { id: roomIdParam, isActive: true };
-
-    const room = await prismaClient.room.findFirst({
-      where: whereClause,
-    });
-
-    if (!room) {
-      return NextResponse.json(
-        { message: "Room not found" },
-        { status: 404 }
-      );
+    if (!ctx.isHost) {
+      return NextResponse.json({ message: "Only the host can skip tracks." }, { status: 403 });
     }
 
-    const roomId = room.id;
+    const roomId = ctx.room.id;
 
     // Mark current stream as played if exists
-    if (room.currentStreamId) {
+    if (ctx.room.currentStreamId) {
       await prismaClient.stream.update({
-        where: { id: room.currentStreamId },
+        where: { id: ctx.room.currentStreamId },
         data: { played: true, active: false },
       });
     }
 
-    // Get next stream with most upvotes
     const nextStream = await prismaClient.stream.findFirst({
-      where: {
-        roomId,
-        played: false,
-      },
-      include: {
-        _count: {
-          select: {
-            upvotes: true,
-          },
-        },
-      },
-      orderBy: [
-        {
-          upvotes: {
-            _count: "desc",
-          },
-        },
-        {
-          createdAt: "asc",
-        },
-      ],
+      where: { roomId, played: false },
+      include: { _count: { select: { upvotes: true } } },
+      orderBy: [{ upvotes: { _count: "desc" } }, { createdAt: "asc" }],
     });
 
     if (!nextStream) {
-      // No more songs in queue
       await prismaClient.room.update({
         where: { id: roomId },
         data: {
@@ -89,14 +47,9 @@ export async function POST(
           playbackStartedAt: null,
         },
       });
-
-      return NextResponse.json({
-        message: "Queue is empty",
-        currentStream: null,
-      });
+      return NextResponse.json({ message: "Queue is empty", currentStream: null });
     }
 
-    // Set as currently playing
     await prismaClient.room.update({
       where: { id: roomId },
       data: {
@@ -126,9 +79,7 @@ export async function POST(
       },
     });
   } catch (e) {
-    return NextResponse.json(
-      { message: "Error playing next track", error: String(e) },
-      { status: 500 }
-    );
+    console.error("Play next error:", e);
+    return NextResponse.json({ message: "Error playing next track" }, { status: 500 });
   }
 }

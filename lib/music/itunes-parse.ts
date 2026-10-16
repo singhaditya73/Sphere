@@ -92,6 +92,9 @@ export function parseItunesItems(payload: unknown): Track[] {
       embeddable: preview ? true : null,
       previewUrl: preview || null,
       source: "itunes-search-api",
+      mediaType: "music",
+      category: asString(record.primaryGenreName) || null,
+      available: true,
     });
   }
   return tracks;

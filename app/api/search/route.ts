@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { getMusicProvider, MAX_QUERY_LENGTH, MIN_QUERY_LENGTH, normalizeQuery } from "@/lib/music";
 import { isMusicError } from "@/lib/music/errors";
+import { normalizeSearchCategory } from "@/lib/media";
 import { FixedWindowRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const searchLimiter = new FixedWindowRateLimiter(30, 60 * 1000);
 const SearchQuerySchema = z.object({
   q: z.string().min(MIN_QUERY_LENGTH).max(MAX_QUERY_LENGTH),
   limit: z.coerce.number().int().min(1).max(25).optional(),
+  category: z.enum(["music", "video", "all"]).optional(),
 });
 
 function jsonError(message: string, code: string, status: number, extra: Record<string, unknown> = {}) {
@@ -35,6 +37,7 @@ export async function GET(req: NextRequest) {
   const parsed = SearchQuerySchema.safeParse({
     q: req.nextUrl.searchParams.get("q") ?? "",
     limit: req.nextUrl.searchParams.get("limit") ?? undefined,
+    category: req.nextUrl.searchParams.get("category") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -46,6 +49,7 @@ export async function GET(req: NextRequest) {
   }
 
   const query = normalizeQuery(parsed.data.q);
+  const category = normalizeSearchCategory(parsed.data.category ?? "music");
 
   const rate = searchLimiter.check(session.user.email);
   if (!rate.allowed) {
@@ -57,8 +61,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const provider = getMusicProvider();
-    const results = await provider.searchTracks(query, { limit: parsed.data.limit });
-    return NextResponse.json({ provider: provider.id, query, results });
+    const results = await provider.searchTracks(query, { limit: parsed.data.limit, category });
+    return NextResponse.json({ provider: provider.id, query, category, results });
   } catch (error) {
     if (isMusicError(error)) {
       const status = error.status >= 400 && error.status < 600 ? error.status : 502;

@@ -123,9 +123,9 @@ export function parseVideoItems(payload: unknown): Track[] {
   for (const item of items) {
     const record = item as {
       id?: unknown;
-      snippet?: { title?: unknown; channelTitle?: unknown; thumbnails?: unknown };
+      snippet?: { title?: unknown; channelTitle?: unknown; thumbnails?: unknown; categoryId?: unknown };
       contentDetails?: { duration?: unknown };
-      status?: { embeddable?: unknown };
+      status?: { embeddable?: unknown; privacyStatus?: unknown };
     } | null;
 
     const id = record?.id;
@@ -138,6 +138,23 @@ export function parseVideoItems(payload: unknown): Track[] {
     const artist = typeof snippet.channelTitle === "string" ? snippet.channelTitle : "";
     const embeddable = typeof record?.status?.embeddable === "boolean" ? record.status.embeddable : null;
 
+    // Category id 10 is "Music"; anything else is treated as general video.
+    // Inlined (rather than imported) so this module keeps zero runtime imports.
+    const categoryId = typeof snippet.categoryId === "string" ? snippet.categoryId : null;
+    const mediaType = categoryId === "10" ? "music" : "video";
+
+    // videos.list only returns videos the API can read, but an upload can still
+    // be non-embeddable or private/unlisted. Surface that so the UI can explain
+    // why playback is unavailable instead of showing a broken player.
+    const privacyStatus = typeof record?.status?.privacyStatus === "string" ? record.status.privacyStatus : null;
+    const available = embeddable !== false && privacyStatus !== "private";
+    const unavailableReason =
+      embeddable === false
+        ? "The uploader has disabled embedded playback for this video."
+        : privacyStatus === "private"
+        ? "This video is private and cannot be played."
+        : null;
+
     tracks.push({
       provider: "youtube",
       id,
@@ -149,9 +166,27 @@ export function parseVideoItems(payload: unknown): Track[] {
       url: `https://www.youtube.com/watch?v=${id}`,
       embeddable,
       source: "youtube-data-api",
+      mediaType,
+      category: categoryId,
+      available,
+      unavailableReason,
     });
   }
   return tracks;
+}
+
+/**
+ * Restrict parsed tracks to a media category.
+ *
+ * `all` keeps everything; `music` / `video` split on the provider category so a
+ * single search endpoint can serve songs and general videos without a second
+ * search system. Falls back to the unfiltered list when the filter would empty
+ * an otherwise valid result set (YouTube's category data can be missing).
+ */
+export function filterTracksByCategory(tracks: Track[], category: string): Track[] {
+  if (category !== "music" && category !== "video") return tracks;
+  const filtered = tracks.filter((track) => track.mediaType === category);
+  return filtered.length > 0 ? filtered : tracks;
 }
 
 /**

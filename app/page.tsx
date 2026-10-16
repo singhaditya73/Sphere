@@ -11,7 +11,7 @@ interface TopRoom {
   id: string;
   code: string;
   name: string;
-  hostEmail: string;
+  hostName: string;
   streamCount: number;
   currentStream?: {
     title: string;
@@ -80,24 +80,25 @@ export default function Home() {
               const r = roomDetail.room;
               
               if (r) {
-                const listenerEmails = Array.from(new Set([
-                  r.host.email,
-                  ...r.queue.map((s: any) => s.addedBy)
-                ])).filter(Boolean);
+                // Real presence from the server (heartbeat-backed).
+                const participants = r.participants || [];
+                const listenerNames = participants.length
+                  ? participants.map((p: any) => p.username)
+                  : [r.host.username || r.host.email?.split('@')[0] || "Host"];
 
                 selectedHero = {
                   id: r.id,
                   code: r.code,
                   name: r.name,
-                  host: r.host.email?.split('@')[0] || "Host",
-                  listeningCount: listenerEmails.length,
-                  listenerInitials: listenerEmails.map(email => email.charAt(0).toUpperCase()),
+                  host: r.host.username || r.host.email?.split('@')[0] || "Host",
+                  listeningCount: listenerNames.length,
+                  listenerInitials: listenerNames.map((name: string) => name.charAt(0).toUpperCase()),
                   currentStream: r.currentStream,
                   queueCount: r.queue.length,
                   queue: r.queue.slice(0, 3).map((q: any) => ({
                     title: q.title,
                     upvotes: q.upvotes,
-                    addedBy: q.addedBy?.split('@')[0] || "Someone"
+                    addedBy: q.addedByUsername || q.addedBy?.split('@')[0] || "Someone"
                   })),
                   isUserInRoom: true
                 };
@@ -116,7 +117,7 @@ export default function Home() {
             id: topRoom.id,
             code: topRoom.code,
             name: topRoom.name,
-            host: topRoom.hostEmail?.split('@')[0] || "Host",
+            host: topRoom.hostName || "Host",
             listeningCount: topRoom.listeningCount,
             listenerInitials: topRoom.listenerInitials || [],
             currentStream: topRoom.currentStream,
@@ -408,7 +409,7 @@ export default function Home() {
                               {room.name}
                             </h3>
                             <p className="text-[10px] text-[#A1A1AA] mt-0.5">
-                              Hosted by {room.hostEmail?.split('@')[0]}
+                              Hosted by {room.hostName || "Host"}
                             </p>
                           </div>
                           

@@ -5,8 +5,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // 1. Fetch recent streams (song added)
+    // Privacy: the public activity feed only reflects rooms the host chose to
+    // make public. Chat messages are room-private and are never surfaced here.
+    const publicRoom = { room: { visibility: "public" as const, isActive: true } };
+
+    // 1. Fetch recent streams (song added) from public rooms only.
     const recentStreams = await prismaClient.stream.findMany({
+      where: publicRoom,
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
@@ -15,22 +20,13 @@ export async function GET() {
       }
     });
 
-    // 2. Fetch recent rooms (room created)
+    // 2. Fetch recent public rooms (room created).
     const recentRooms = await prismaClient.room.findMany({
+      where: { visibility: "public", isActive: true },
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
         host: { select: { email: true, username: true } },
-      }
-    });
-
-    // 3. Fetch recent messages (user chat activity)
-    const recentMessages = await prismaClient.message.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: { select: { email: true, username: true } },
-        room: { select: { name: true } },
       }
     });
 
@@ -65,19 +61,6 @@ export async function GET() {
           detail: room.name,
           roomName: room.name,
           time: room.createdAt.toISOString(),
-        });
-      }
-    });
-
-    recentMessages.forEach((msg) => {
-      if (msg.user?.email && msg.room?.name) {
-        events.push({
-          id: `msg-${msg.id}`,
-          type: "chat_message",
-          user: msg.user.username || msg.user.email.split("@")[0],
-          detail: msg.text,
-          roomName: msg.room.name,
-          time: msg.createdAt.toISOString(),
         });
       }
     });

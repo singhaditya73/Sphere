@@ -5,6 +5,8 @@
  * can be added later without touching components or API consumers.
  */
 
+import type { SearchCategory } from "../media.ts";
+
 export type MusicProviderId = "youtube" | "itunes";
 
 /** Where a normalized track came from. Useful for debugging and analytics. */
@@ -42,6 +44,17 @@ export interface Track {
    */
   previewUrl?: string | null;
   source: TrackSource;
+  /**
+   * Universal-media kind reported by the provider (`music`, `video`, ...).
+   * Lets the one shared queue hold songs and videos without a second system.
+   */
+  mediaType?: string;
+  /** Provider category id/label when the provider reports one. */
+  category?: string | null;
+  /** False when the provider says the item can no longer be played. */
+  available?: boolean;
+  /** Human explanation shown when {@link available} is false. */
+  unavailableReason?: string | null;
 }
 
 export interface SearchOptions {
@@ -49,6 +62,12 @@ export interface SearchOptions {
   limit?: number;
   /** Caller cancellation signal, combined with the provider timeout. */
   signal?: AbortSignal;
+  /**
+   * Restrict results to a media category. When omitted, providers keep their
+   * legacy behaviour (a music-focused first pass, no post-filter) so existing
+   * callers and tests are unaffected.
+   */
+  category?: SearchCategory;
 }
 
 export interface MusicProvider {

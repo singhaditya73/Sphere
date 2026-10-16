@@ -5,18 +5,26 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
-  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones, AlertCircle
+  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones, AlertCircle,
+  Shield, Wand2, Radio, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 import { UsernameModal } from "@/components/UsernameModal";
 import { SongSearchDialog, type AddedTrackInfo } from "@/components/song-search-dialog";
+import { RoomInvite } from "@/components/room-invite";
+import { VideoCall } from "@/components/video-call";
+import { RoomActivities, type PollView, type BattleView } from "@/components/room-activities";
+import { RoomReactions, type RoomReaction } from "@/components/room-reactions";
+import { AiCompanion } from "@/components/ai-companion";
+import { RoomModeration } from "@/components/room-moderation";
 import { formatDuration } from "@/lib/music/youtube-parse";
+import type { ReactionEmoji } from "@/lib/reactions";
 
 interface ChatMessage {
   id: string;
   text: string;
-  userEmail: string;
+  displayName: string;
   username: string | null;
   createdAt: string;
 }
@@ -33,10 +41,32 @@ interface Stream {
   bigImg: string;
   /** Provider-hosted audio preview (used for keyless providers like iTunes). */
   previewUrl?: string | null;
+  /** Universal-media kind (music/video/...). */
+  mediaType?: string;
+  category?: string | null;
   upvotes: number;
   addedBy: string;
   addedByUsername: string | null;
   createdAt: string;
+}
+
+interface Participant {
+  userId: string;
+  username: string;
+  role: "host" | "guest";
+  isMuted: boolean;
+}
+
+interface Viewer {
+  isHost: boolean;
+  isBanned: boolean;
+  isAuthenticated: boolean;
+  isFavorited: boolean;
+  canAddMedia: boolean;
+  canChat: boolean;
+  canControlPlayback: boolean;
+  canModerate: boolean;
+  canUseCall: boolean;
 }
 
 /** True when a stream should play through the preview `<audio>` element. */
@@ -49,9 +79,17 @@ interface Room {
   code: string;
   name: string;
   mode: "dj" | "listen_together";
+  visibility: "public" | "unlisted" | "private";
+  description?: string | null;
+  category?: string | null;
+  isLocked: boolean;
+  chatMode: "all" | "hosts" | "muted";
+  addMode: "all" | "hosts";
+  callsEnabled: boolean;
+  isActive: boolean;
   host: {
     id: string;
-    email: string;
+    email: string | null;
     username: string | null;
   };
   currentStream: Stream | null;
@@ -59,6 +97,10 @@ interface Room {
   isPlaying: boolean;
   playbackPosition: number;
   playbackStartedAt: string | null;
+  participants: Participant[];
+  reactions: RoomReaction[];
+  poll: PollView | null;
+  battle: BattleView | null;
 }
 
 export default function RoomPage({ params }: { params: Promise<{ roomId: string }> }) {
@@ -79,7 +121,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewStreamIdRef = useRef<string | null>(null);
 
-  const isHost = session?.user?.email === room?.host?.email;
+  // Server-authoritative viewer permissions (host-ness, bans, policy flags).
+  const [viewer, setViewer] = useState<Viewer | null>(null);
+
+  const isHost = viewer?.isHost ?? session?.user?.email === room?.host?.email;
   const currentIsPreview = isPreviewStream(room?.currentStream);
 
   // Chat & social activity log feed
@@ -104,6 +149,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
+
+  // Sphere 2.0 — social features
+  const [showAi, setShowAi] = useState(false);
+  const [showModeration, setShowModeration] = useState(false);
+  const [roomError, setRoomError] = useState<{ code?: string; message: string } | null>(null);
 
   const updateVolume = (newVolume: number) => {
     setVolume(newVolume);
@@ -404,7 +454,16 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     try {
       const response = await fetch(`/api/rooms/${roomId}`, { cache: "no-store" });
       if (!response.ok) {
-        console.error("Failed to fetch room:", response.statusText);
+        if (seq !== roomRequestSeq.current) return;
+        const body = await response.json().catch(() => ({}));
+        setRoomError({
+          code: body?.code,
+          message:
+            body?.message ||
+            (response.status === 404
+              ? "This room no longer exists."
+              : "You do not have access to this room."),
+        });
         return;
       }
       const contentType = response.headers.get("content-type");
@@ -413,13 +472,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         // Ignore responses that arrive after a newer request started.
         if (seq !== roomRequestSeq.current) return;
 
+        setRoomError(null);
         setRoom(data.room);
+        setViewer(data.viewer ?? null);
         localStorage.setItem("sphere_active_room_id", roomId);
 
-        // Track joined rooms for the user
-        const hostEmail = data.room.host?.email;
+        // Track joined rooms for the user (hosts keep their own rooms separately).
         const currentEmail = session?.user?.email;
-        if (hostEmail && currentEmail && hostEmail !== currentEmail) {
+        if (currentEmail && data.viewer && !data.viewer.isHost) {
           const joinedStr = localStorage.getItem("sphere_joined_rooms") || "[]";
           try {
             let joinedList = JSON.parse(joinedStr);
@@ -428,7 +488,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             joinedList.unshift({
               id: data.room.id,
               name: data.room.name,
-              hostEmail: hostEmail,
+              hostName: data.room.host?.username || "Host",
               code: data.room.code,
             });
             if (joinedList.length > 20) joinedList.pop();
@@ -523,6 +583,45 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToast(null), 3500);
   }, []);
+
+  // Send an emoji reaction (kept separate from queue upvotes).
+  const handleReact = useCallback(
+    async (emoji: ReactionEmoji) => {
+      try {
+        const res = await fetch(`/api/rooms/${roomId}/reactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emoji, streamId: room?.currentStream?.id }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          showToast("error", data?.message || "Could not send that reaction.");
+          return;
+        }
+        void fetchRoomData();
+      } catch {
+        showToast("error", "Network error while reacting.");
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [roomId, room?.currentStream?.id, showToast]
+  );
+
+  const toggleFavorite = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/favorite`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast("error", data?.message || "Could not update saved rooms.");
+        return;
+      }
+      const data = await res.json();
+      setViewer((prev) => (prev ? { ...prev, isFavorited: data.isFavorited } : prev));
+      showToast("info", data.isFavorited ? "Saved to your rooms." : "Removed from saved rooms.");
+    } catch {
+      showToast("error", "Network error.");
+    }
+  }, [roomId, showToast]);
 
   const handleTrackAdded = useCallback(
     (info: AddedTrackInfo) => {
@@ -687,11 +786,31 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   }
 
   if (!room) {
+    const privateRoom = roomError?.code === "INVITE_REQUIRED";
+    const banned = roomError?.code === "BANNED";
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#090909] p-6 text-center">
-        <h1 className="text-lg font-heading font-black">Room not found</h1>
+        <div className="w-12 h-12 rounded-full bg-[#10B981]/10 flex items-center justify-center mb-4">
+          {banned ? (
+            <Shield className="h-5 w-5 text-[#F87171]" />
+          ) : privateRoom ? (
+            <Lock className="h-5 w-5 text-[#F59E0B]" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-[#A1A1AA]" />
+          )}
+        </div>
+        <h1 className="text-lg font-heading font-black text-white">
+          {banned
+            ? "You were removed from this room"
+            : privateRoom
+            ? "This room is private"
+            : "Room not found"}
+        </h1>
+        <p className="text-xs text-[#A1A1AA] mt-2 max-w-sm">
+          {roomError?.message || "The room may have ended or the link may be incorrect."}
+        </p>
         <button
-          className="mt-4 px-5 py-2 rounded-full bg-[#10B981] text-white text-xs font-semibold cursor-pointer"
+          className="mt-5 px-5 py-2 rounded-full bg-[#10B981] text-white text-xs font-semibold cursor-pointer"
           onClick={() => router.push("/dashboard")}
         >
           Back to Dashboard
@@ -701,12 +820,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   }
 
 
-  // Synthesize active listening presence array
-  const listenerEmails = Array.from(new Set([
-    room.host.email,
-    ...room.queue.map(s => s.addedBy),
-    ...messages.map(m => m.userEmail)
-  ])).filter(Boolean);
+  // Real presence from the server (heartbeat-backed). Falls back to the host so
+  // the count is never misleading on a brand-new room.
+  const participants = room.participants ?? [];
+  const listenerNames = participants.length
+    ? participants.map((p) => p.username)
+    : [room.host.username || room.host.email?.split("@")[0] || "Host"];
+  const canChat = viewer ? viewer.canChat : true;
+  const canAddMedia = viewer ? viewer.canAddMedia : true;
 
   // Integrate system events directly in the chat feed
   const combinedLog: Array<
@@ -716,7 +837,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     ...messages.map(m => ({
       type: "msg" as const,
       id: m.id,
-      user: m.username || m.userEmail?.split('@')[0] || "User",
+      user: m.username || m.displayName || "User",
       text: m.text,
       time: m.createdAt
     })),
@@ -789,13 +910,42 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowShareModal(true)}
                   className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <QrCode className="w-3.5 h-3.5" /> Invite
                 </button>
+                <button
+                  onClick={() => router.push(`/room/${room.code}/display`)}
+                  className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Open the TV-friendly Party Mode display"
+                >
+                  <Radio className="w-3.5 h-3.5" /> Party Mode
+                </button>
+                {viewer?.isAuthenticated && (
+                  <button
+                    onClick={toggleFavorite}
+                    aria-pressed={viewer.isFavorited}
+                    aria-label={viewer.isFavorited ? "Remove from saved rooms" : "Save this room"}
+                    className={`rounded-full px-3 py-1.5 border text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      viewer.isFavorited
+                        ? "bg-[#F59E0B]/10 border-[#F59E0B]/30 text-[#F59E0B]"
+                        : "bg-[#090909] border-[#27272A] text-[#A1A1AA] hover:text-white"
+                    }`}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${viewer.isFavorited ? "fill-[#F59E0B]" : ""}`} />
+                  </button>
+                )}
+                {viewer?.isHost && (
+                  <button
+                    onClick={() => setShowModeration(true)}
+                    className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Shield className="w-3.5 h-3.5" /> Host
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     localStorage.removeItem("sphere_active_room_id");
@@ -817,10 +967,23 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             </div>
 
             {/* Listener presence row */}
-            <div className="flex items-center gap-3 border-t border-[#27272A]/60 pt-4 flex-wrap">
+            <div className="flex items-center gap-2 border-t border-[#27272A]/60 pt-4 flex-wrap">
               <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1AA] flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-[#10B981]" /> Listening Now ({listenerEmails.length})
+                <Users className="w-3.5 h-3.5 text-[#10B981]" /> Listening Now ({listenerNames.length})
               </span>
+              {listenerNames.slice(0, 8).map((name, i) => (
+                <span
+                  key={`${name}-${i}`}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-[#18181B] text-[#A1A1AA]"
+                >
+                  {name}
+                </span>
+              ))}
+              {room.isLocked && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] inline-flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Locked
+                </span>
+              )}
             </div>
           </div>
 
@@ -964,21 +1127,33 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             )}
           </div>
 
-          {/* Add Song action */}
+          {/* Add media action */}
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-5">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-sm font-heading font-black text-white">Grow the queue</p>
                 <p className="text-[10px] text-[#A1A1AA] mt-0.5">
-                  Search in-app or paste a link — everyone votes on what plays next.
+                  {canAddMedia
+                    ? "Search music, videos, or paste a link — everyone votes on what plays next."
+                    : "Only the host can add media right now."}
                 </p>
               </div>
-              <button
-                onClick={() => setShowAddSong(true)}
-                className="shrink-0 h-10 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold px-5 inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-97"
-              >
-                <Plus className="w-4 h-4" /> Add Song
-              </button>
+              <div className="shrink-0 flex items-center gap-2">
+                <button
+                  onClick={() => setShowAi(true)}
+                  disabled={!canAddMedia}
+                  className="h-10 rounded-full border border-[#27272A] hover:border-[#10B981]/40 text-[#A1A1AA] hover:text-white text-xs font-bold px-4 inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Wand2 className="w-4 h-4" /> Ask AI
+                </button>
+                <button
+                  onClick={() => setShowAddSong(true)}
+                  disabled={!canAddMedia}
+                  className="h-10 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold px-5 inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-97 disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" /> Add Media
+                </button>
+              </div>
             </div>
           </div>
 
@@ -988,9 +1163,10 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <span className="text-xs font-bold uppercase tracking-wider text-[#A1A1AA]">Upcoming Queue ({room.queue.length})</span>
               <button
                 onClick={() => setShowAddSong(true)}
-                className="text-xs text-[#10B981] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                disabled={!canAddMedia}
+                className="text-xs text-[#10B981] font-bold hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Song
+                <Plus className="w-3.5 h-3.5" /> Add Media
               </button>
             </div>
 
@@ -1083,6 +1259,28 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
         {/* RIGHT SIDEBAR: Live Activity / Social Chat (Col-span 4) */}
         <div className="lg:col-span-4 shrink-0 flex flex-col gap-6">
+          {/* Quick reactions (kept separate from queue upvotes) */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#A1A1AA] mb-3">Quick reactions</p>
+            <RoomReactions
+              reactions={room.reactions ?? []}
+              onSend={handleReact}
+              disabled={!viewer?.isAuthenticated || viewer?.isBanned}
+            />
+          </div>
+
+          {/* Polls & song/video battles */}
+          <RoomActivities
+            roomId={roomId}
+            poll={room.poll}
+            battle={room.battle}
+            queue={room.queue}
+            isHost={Boolean(viewer?.isHost)}
+            canInteract={Boolean(viewer?.isAuthenticated && !viewer?.isBanned)}
+            onRefresh={fetchRoomData}
+            onError={(message) => showToast("error", message)}
+          />
+
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl flex flex-col overflow-hidden h-[540px]">
             <div className="px-4 py-3.5 border-b border-[#27272A]/60 flex items-center justify-between bg-[#121212]">
               <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
@@ -1139,17 +1337,17 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             {/* Input Form */}
             <form onSubmit={handleSendMessage} className="p-3 border-t border-[#27272A]/60 bg-[#090909]/20 flex gap-2">
               <input
-                placeholder="Say something to the room..."
+                placeholder={canChat ? "Say something to the room..." : room.isLocked ? "Chat paused (room locked)" : "Only the host can chat right now"}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                disabled={sendingMessage}
-                className="flex-1 h-9 px-3.5 bg-[#090909] border border-[#27272A] rounded-xl text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
+                disabled={sendingMessage || !canChat}
+                className="flex-1 h-9 px-3.5 bg-[#090909] border border-[#27272A] rounded-xl text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors disabled:opacity-60"
                 maxLength={500}
               />
               <button
                 type="submit"
-                disabled={sendingMessage || !newMessage.trim()}
-                className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                disabled={sendingMessage || !newMessage.trim() || !canChat}
+                className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:opacity-60"
               >
                 {sendingMessage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </button>
@@ -1263,74 +1461,53 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         )}
       </div>
 
-      {/* QR Invite Modal */}
-      <AnimatePresence>
-        {showShareModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-            onClick={() => setShowShareModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#121212] border border-[#27272A] p-6 rounded-2xl max-w-sm w-full text-center space-y-5 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div>
-                <h3 className="font-heading font-black text-lg text-white">Invite Listeners</h3>
-                <p className="text-[#A1A1AA] text-xs mt-0.5">Let them join the session</p>
-              </div>
+      {/* Invite / QR modal (server-generated QR; host can rotate/revoke) */}
+      <RoomInvite
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        roomId={roomId}
+        roomCode={room.code}
+        isHost={Boolean(viewer?.isHost)}
+      />
 
-              <div className="bg-[#090909] rounded-xl p-3 border border-[#27272A]">
-                <p className="text-[9px] text-[#A1A1AA] font-mono mb-0.5 uppercase tracking-wider">Room Code</p>
-                <p className="text-xl font-mono font-black text-[#10B981] tracking-widest">{room.code}</p>
-              </div>
-
-              <div className="bg-white rounded-xl p-3 inline-block mx-auto border border-[#27272A]">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&color=0-0-0&bgcolor=255-255-255&format=svg`}
-                  alt="QR Code"
-                  className="w-36 h-36"
-                />
-              </div>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  setLinkCopied(true);
-                  setTimeout(() => setLinkCopied(false), 2000);
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#090909] hover:bg-[#18181B] text-white transition-colors border border-[#27272A] cursor-pointer"
-              >
-                {linkCopied ? (
-                  <><Check className="w-3.5 h-3.5 text-[#10B981]" /> <span className="text-xs font-semibold">Copied!</span></>
-                ) : (
-                  <><Copy className="w-3.5 h-3.5 text-[#A1A1AA]" /> <span className="text-xs font-semibold">Copy Room URL</span></>
-                )}
-              </button>
-
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="text-xs text-[#A1A1AA] hover:text-white transition-colors block mx-auto cursor-pointer"
-              >
-                Close
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Native song search */}
+      {/* Native media search */}
       <SongSearchDialog
         open={showAddSong}
         onOpenChange={setShowAddSong}
         roomId={roomId}
         queuedTrackIds={room.queue.map((s) => s.extractedId).filter(Boolean)}
         onAdded={handleTrackAdded}
+      />
+
+      {/* AI room companion (suggestions require explicit approval) */}
+      <AiCompanion
+        open={showAi}
+        onOpenChange={setShowAi}
+        roomId={roomId}
+        queuedTrackIds={room.queue.map((s) => s.extractedId).filter(Boolean)}
+        onAdded={(track) => handleTrackAdded({ trackId: track.id, track, duplicate: false })}
+      />
+
+      {/* Host moderation */}
+      <RoomModeration
+        open={showModeration}
+        onOpenChange={setShowModeration}
+        roomId={roomId}
+        isHost={Boolean(viewer?.isHost)}
+        participants={room.participants ?? []}
+        hostUserId={room.host.id}
+        isLocked={room.isLocked}
+        chatMode={room.chatMode}
+        addMode={room.addMode}
+        onRefresh={fetchRoomData}
+        onError={(message) => showToast("error", message)}
+      />
+
+      {/* In-room video call (LiveKit; hidden when calling is disabled) */}
+      <VideoCall
+        roomId={roomId}
+        enabled={Boolean(room.callsEnabled && room.isActive)}
+        isHost={Boolean(viewer?.isHost)}
       />
 
       {/* Toast */}

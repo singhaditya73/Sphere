@@ -1,55 +1,32 @@
 import { prismaClient } from "@/lib/db";
 import { generateRoomCode } from "@/lib/room-code";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/room-access";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const CreateRoomSchema = z.object({
   name: z.string().min(1).max(100),
   mode: z.enum(["dj", "listen_together"]).default("dj"),
+  visibility: z.enum(["public", "unlisted", "private"]).default("unlisted"),
+  description: z.string().max(280).optional(),
+  category: z.string().max(40).optional(),
 });
+
+function displayName(email: string | null, username: string | null): string {
+  return username || email?.split("@")[0] || "Host";
+}
 
 // Create a new room
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    console.log("=== CREATE ROOM DEBUG ===");
-    console.log("Session:", JSON.stringify(session, null, 2));
-
-    if (!session?.user?.email) {
-      console.log("No session or email found");
-      return NextResponse.json(
-        { message: "Please sign in to create a room" },
-        { status: 401 }
-      );
-    }
-
-    // Find or create user
-    let user = await prismaClient.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    console.log("User from DB:", user);
-
+    const user = await getSessionUser();
     if (!user) {
-      // Create user if doesn't exist (shouldn't happen with proper signIn callback)
-      console.log("Creating user...");
-      user = await prismaClient.user.create({
-        data: {
-          email: session.user.email,
-          provider: "Google",
-        },
-      });
-      console.log("User created:", user);
+      return NextResponse.json({ message: "Please sign in to create a room" }, { status: 401 });
     }
 
     const body = await req.json();
-    console.log("Request body:", body);
-
     const data = CreateRoomSchema.parse(body);
 
     // Generate unique room code with retry
@@ -66,86 +43,114 @@ export async function POST(req: NextRequest) {
       data: {
         name: data.name,
         mode: data.mode,
-        code: code,
+        code,
         hostId: user.id,
+        visibility: data.visibility,
+        description: data.description?.trim() || null,
+        category: data.category?.trim() || null,
       },
     });
 
-    console.log("Room created successfully:", room);
-    console.log("=== END DEBUG ===");
-
-    return NextResponse.json({
-      message: "Room created successfully",
-      room: {
-        id: room.id,
-        code: room.code,
-        name: room.name,
-        mode: room.mode,
-        hostId: room.hostId,
-      },
-    }, { status: 200 });
-  } catch (e) {
-    console.error("=== CREATE ROOM ERROR ===");
-    console.error("Error:", e);
-    console.error("Error string:", String(e));
-    console.error("=== END ERROR ===");
-    
     return NextResponse.json(
-      { 
-        message: "Error creating room", 
-        error: e instanceof Error ? e.message : String(e),
-        stack: e instanceof Error ? e.stack : undefined
+      {
+        message: "Room created successfully",
+        room: {
+          id: room.id,
+          code: room.code,
+          name: room.name,
+          mode: room.mode,
+          visibility: room.visibility,
+          hostId: room.hostId,
+        },
       },
-      { status: 500 }
+      { status: 200 }
     );
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json({ message: "Invalid room details." }, { status: 400 });
+    }
+    console.error("Create room error:", e);
+    return NextResponse.json({ message: "Error creating room" }, { status: 500 });
   }
 }
 
-// Get all active rooms
-export async function GET() {
+/**
+ * List rooms.
+ *
+ *  - `scope=public` (default): the public directory — only rooms explicitly
+ *    marked public. Private/unlisted rooms are never enumerated here.
+ *  - `scope=mine`: rooms hosted by the signed-in user.
+ *  - `scope=joined&ids=a,b,c`: resolve a set of room ids the caller already has
+ *    (used by the dashboard's "Rooms Joined" list). Ids are validated/capped.
+ *
+ * Host emails are only exposed to the owner of the room; everyone else sees a
+ * display name, so the directory cannot be scraped for addresses.
+ */
+export async function GET(req: NextRequest) {
   try {
+    const scope = req.nextUrl.searchParams.get("scope") ?? "public";
+    const user = await getSessionUser();
+
+    let where: Record<string, unknown>;
+    if (scope === "mine") {
+      if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      where = { isActive: true, hostId: user.id };
+    } else if (scope === "saved") {
+      if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      const favorites = await prismaClient.roomFavorite.findMany({
+        where: { userId: user.id },
+        select: { roomId: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      const ids = favorites.map((f) => f.roomId);
+      if (ids.length === 0) return NextResponse.json({ rooms: [] });
+      // Saved rooms are shown even after they end, so the host can revisit them.
+      where = { id: { in: ids } };
+    } else if (scope === "joined") {
+      const ids = (req.nextUrl.searchParams.get("ids") ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0 && id.length <= 128)
+        .slice(0, 50);
+      if (ids.length === 0) return NextResponse.json({ rooms: [] });
+      where = { isActive: true, id: { in: ids } };
+    } else {
+      where = { isActive: true, visibility: "public" };
+    }
+
     const rooms = await prismaClient.room.findMany({
-      where: {
-        isActive: true,
-      },
+      where,
       include: {
-        host: {
-          select: {
-            email: true,
-          },
-        },
-        streams: {
-          where: {
-            played: false,
-          },
-          include: {
-            _count: {
-              select: {
-                upvotes: true,
-              },
-            },
-          },
-        },
+        host: { select: { id: true, email: true, username: true } },
+        _count: { select: { streams: { where: { played: false } } } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
     });
 
     return NextResponse.json({
-      rooms: rooms.map((room) => ({
-        id: room.id,
-        name: room.name,
-        mode: room.mode,
-        hostEmail: room.host.email,
-        streamCount: room.streams.length,
-        createdAt: room.createdAt,
-      })),
+      rooms: rooms.map((room) => {
+        const isOwner = user?.id === room.hostId;
+        return {
+          id: room.id,
+          code: room.code,
+          name: room.name,
+          mode: room.mode,
+          visibility: room.visibility,
+          description: room.description,
+          category: room.category,
+          streamCount: room._count.streams,
+          createdAt: room.createdAt,
+          isOwner,
+          hostName: displayName(room.host.email, room.host.username),
+          // Only the owner sees the raw host email.
+          hostEmail: isOwner ? room.host.email : null,
+        };
+      }),
     });
   } catch (e) {
-    return NextResponse.json(
-      { message: "Error fetching rooms", error: String(e) },
-      { status: 500 }
-    );
+    console.error("List rooms error:", e);
+    return NextResponse.json({ message: "Error fetching rooms" }, { status: 500 });
   }
 }

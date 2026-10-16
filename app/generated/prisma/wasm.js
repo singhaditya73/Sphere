@@ -135,7 +135,15 @@ exports.Prisma.RoomScalarFieldEnum = {
   isPlaying: 'isPlaying',
   playbackPosition: 'playbackPosition',
   playbackStartedAt: 'playbackStartedAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  visibility: 'visibility',
+  description: 'description',
+  category: 'category',
+  isLocked: 'isLocked',
+  chatMode: 'chatMode',
+  addMode: 'addMode',
+  callsEnabled: 'callsEnabled',
+  endedAt: 'endedAt'
 };
 
 exports.Prisma.StreamScalarFieldEnum = {
@@ -149,6 +157,8 @@ exports.Prisma.StreamScalarFieldEnum = {
   smallImg: 'smallImg',
   bigImg: 'bigImg',
   previewUrl: 'previewUrl',
+  mediaType: 'mediaType',
+  category: 'category',
   active: 'active',
   played: 'played',
   userId: 'userId',
@@ -165,6 +175,101 @@ exports.Prisma.UpvoteScalarFieldEnum = {
 exports.Prisma.MessageScalarFieldEnum = {
   id: 'id',
   text: 'text',
+  userId: 'userId',
+  roomId: 'roomId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RoomParticipantScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  userId: 'userId',
+  role: 'role',
+  isMuted: 'isMuted',
+  joinedAt: 'joinedAt',
+  lastSeenAt: 'lastSeenAt'
+};
+
+exports.Prisma.RoomInviteScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  roomId: 'roomId',
+  createdById: 'createdById',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  uses: 'uses',
+  maxUses: 'maxUses',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RoomBanScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  userId: 'userId',
+  createdById: 'createdById',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ReactionScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  userId: 'userId',
+  emoji: 'emoji',
+  streamId: 'streamId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PollScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  createdById: 'createdById',
+  question: 'question',
+  isClosed: 'isClosed',
+  closesAt: 'closesAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PollOptionScalarFieldEnum = {
+  id: 'id',
+  pollId: 'pollId',
+  label: 'label',
+  position: 'position'
+};
+
+exports.Prisma.PollVoteScalarFieldEnum = {
+  id: 'id',
+  pollId: 'pollId',
+  optionId: 'optionId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BattleScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  createdById: 'createdById',
+  isClosed: 'isClosed',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BattleEntryScalarFieldEnum = {
+  id: 'id',
+  battleId: 'battleId',
+  streamId: 'streamId',
+  position: 'position'
+};
+
+exports.Prisma.BattleVoteScalarFieldEnum = {
+  id: 'id',
+  battleId: 'battleId',
+  entryId: 'entryId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RoomFavoriteScalarFieldEnum = {
+  id: 'id',
   userId: 'userId',
   roomId: 'roomId',
   createdAt: 'createdAt'
@@ -193,10 +298,32 @@ exports.RoomMode = exports.$Enums.RoomMode = {
   listen_together: 'listen_together'
 };
 
+exports.RoomVisibility = exports.$Enums.RoomVisibility = {
+  public: 'public',
+  unlisted: 'unlisted',
+  private: 'private'
+};
+
+exports.ChatMode = exports.$Enums.ChatMode = {
+  all: 'all',
+  hosts: 'hosts',
+  muted: 'muted'
+};
+
+exports.AddMode = exports.$Enums.AddMode = {
+  all: 'all',
+  hosts: 'hosts'
+};
+
 exports.StreamType = exports.$Enums.StreamType = {
   Spotify: 'Spotify',
   Youtube: 'Youtube',
   Itunes: 'Itunes'
+};
+
+exports.ParticipantRole = exports.$Enums.ParticipantRole = {
+  host: 'host',
+  guest: 'guest'
 };
 
 exports.Prisma.ModelName = {
@@ -204,7 +331,18 @@ exports.Prisma.ModelName = {
   Room: 'Room',
   Stream: 'Stream',
   Upvote: 'Upvote',
-  Message: 'Message'
+  Message: 'Message',
+  RoomParticipant: 'RoomParticipant',
+  RoomInvite: 'RoomInvite',
+  RoomBan: 'RoomBan',
+  Reaction: 'Reaction',
+  Poll: 'Poll',
+  PollOption: 'PollOption',
+  PollVote: 'PollVote',
+  Battle: 'Battle',
+  BattleEntry: 'BattleEntry',
+  BattleVote: 'BattleVote',
+  RoomFavorite: 'RoomFavorite'
 };
 
 /**
