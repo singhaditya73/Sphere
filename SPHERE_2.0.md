@@ -106,6 +106,44 @@ AI_TIMEOUT_MS=""                      # optional, default 20000
 YOUTUBE_API_KEY="..."   # enable "YouTube Data API v3"
 ```
 
+## Deploying (Vercel)
+
+The database schema must exist in the database Vercel points at — it is **not**
+the same database as your local `.env.local` unless you point both at the same
+Neon project.
+
+The `vercel-build` script keeps it in sync automatically:
+
+```
+prisma generate && prisma db push --skip-generate && next build
+```
+
+So every Vercel deploy applies any schema changes to `DATABASE_URL` before
+building. `prisma db push` **refuses to run** (and fails the build) if a change
+would lose data, so it will never silently drop columns.
+
+To apply the schema to production manually, once:
+
+```bash
+cd Sphere
+# either pull the value from Vercel…
+npx vercel env pull .env.production.local --environment=production
+export DATABASE_URL="$(grep '^DATABASE_URL=' .env.production.local | cut -d= -f2- | tr -d '"')"
+# …or paste it directly
+# export DATABASE_URL="postgresql://…"
+
+# preview the SQL that will run (look for any DROP)
+npx prisma migrate diff --from-url "$DATABASE_URL" \
+  --to-schema-datamodel prisma/schema.prisma --script
+
+# apply it
+npx prisma db push
+```
+
+> The migration history is intentionally not used (`prisma migrate` would replay
+> the old migrations and fail). Schema changes are applied with `db push`, and a
+> hand-written SQL file is kept in `prisma/migrations/` for reference.
+
 ## Privacy & moderation model
 
 - **Visibility**: `public` (listed on the home page), `unlisted` (link only,
