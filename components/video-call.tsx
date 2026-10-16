@@ -271,23 +271,28 @@ export function VideoCall({ roomId, enabled, isHost }: VideoCallProps) {
 
   return (
     <>
-      {/* Floating toggle button */}
+      {/* Header trigger — rendered inline, wherever <VideoCall /> is placed. */}
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Toggle video call"
-        className="fixed bottom-24 left-4 sm:left-6 z-40 h-11 rounded-full px-4 bg-[#121212]/95 backdrop-blur-md border border-[#27272A] hover:border-[#10B981]/50 text-white text-xs font-bold inline-flex items-center gap-2 shadow-2xl transition-colors cursor-pointer"
+        aria-expanded={open}
+        className={`rounded-full px-4 py-1.5 border text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+          status === "connected"
+            ? "bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981]"
+            : "bg-[#090909] border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA]"
+        }`}
       >
-        <Phone className="w-4 h-4 text-[#10B981]" />
+        <Phone className="w-3.5 h-3.5 text-[#10B981]" />
         {status === "connected" ? `Call · ${participants.length}` : "Call"}
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-40 left-4 right-4 sm:right-auto sm:w-[380px] z-40 bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
+            exit={{ opacity: 0, y: -12 }}
+            className="fixed top-24 right-4 sm:right-6 z-40 w-[calc(100vw-2rem)] sm:w-[380px] bg-[#121212]/98 backdrop-blur-md border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272A]/60">
               <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">

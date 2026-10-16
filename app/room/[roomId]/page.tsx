@@ -917,6 +917,12 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* In-room video call (LiveKit; hidden when calling is disabled) */}
+                <VideoCall
+                  roomId={roomId}
+                  enabled={Boolean(room.callsEnabled && room.isActive)}
+                  isHost={Boolean(viewer?.isHost)}
+                />
                 <button
                   onClick={() => setShowShareModal(true)}
                   className="rounded-full px-4 py-1.5 bg-[#090909] border border-[#27272A] hover:bg-[#18181B] text-[#A1A1AA] hover:text-[#FAFAFA] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1515,13 +1521,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         visibility={room.visibility}
         onRefresh={fetchRoomData}
         onError={(message) => showToast("error", message)}
-      />
-
-      {/* In-room video call (LiveKit; hidden when calling is disabled) */}
-      <VideoCall
-        roomId={roomId}
-        enabled={Boolean(room.callsEnabled && room.isActive)}
-        isHost={Boolean(viewer?.isHost)}
       />
 
       {/* Toast */}
