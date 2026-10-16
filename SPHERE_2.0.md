@@ -149,6 +149,27 @@ DATABASE_URL="${DATABASE_URL/:6543/:5432}" npx prisma db push
 > the old migrations and fail). Schema changes are applied with `db push`, and a
 > hand-written SQL file is kept in `prisma/migrations/` for reference.
 
+### Function region — keep it next to the database
+
+Serverless functions must run in the **same region as the database**. Every query
+is a network round trip, and the room endpoint issues several of them per poll
+(twice a second per viewer), so a cross-region hop multiplies badly.
+
+This project runs its functions in **`hnd1` (Tokyo)** because the production
+Supabase database lives in `ap-northeast-1` (Tokyo). With the functions in the
+default `iad1` (Washington D.C.) every request crossed the Pacific: simple
+endpoints took **6–10s**, the room endpoint exceeded Vercel's 10s function limit,
+and the client rendered "Room not found" for rooms that actually existed.
+
+Set the region once per project (it is a project setting, not stored in the repo):
+
+```bash
+npx vercel link                       # if the project is not linked
+# Vercel dashboard → Project → Settings → Functions → Function Region → Tokyo
+```
+
+If you ever move the database to another region, move the functions to match it.
+
 ## Privacy & moderation model
 
 - **Visibility**: `public` (listed on the home page), `unlisted` (link only,
