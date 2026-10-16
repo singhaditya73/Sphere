@@ -1,5 +1,6 @@
 import { Providers } from "./provider";
 import type { ReactNode } from "react"
+import { Analytics } from "@vercel/analytics/next"
 import "@/app/globals.css"
 import type { Metadata } from "next"
 import { Geist as FontHeading } from "next/font/google"
@@ -41,6 +42,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <Providers>{children}</Providers>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
