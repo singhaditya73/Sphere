@@ -1,51 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import * as youtubesearchapi from "youtube-search-api";
+import { getMusicProvider, MAX_QUERY_LENGTH, MIN_QUERY_LENGTH, normalizeQuery } from "@/lib/music";
+import { isMusicError } from "@/lib/music/errors";
+import { FixedWindowRateLimiter } from "@/lib/rate-limit";
 
-// Search YouTube for songs
+export const dynamic = "force-dynamic";
+
+// Protect the provider (and the YouTube quota) from bursts per signed-in user.
+const searchLimiter = new FixedWindowRateLimiter(30, 60 * 1000);
+
+const SearchQuerySchema = z.object({
+  q: z.string().min(MIN_QUERY_LENGTH).max(MAX_QUERY_LENGTH),
+  limit: z.coerce.number().int().min(1).max(25).optional(),
+});
+
+function jsonError(message: string, code: string, status: number, extra: Record<string, unknown> = {}) {
+  return NextResponse.json({ message, code, results: [], ...extra }, { status });
+}
+
+/**
+ * GET /api/search?q=blinding%20lights
+ *
+ * Native song discovery backed by the configured music provider. Only returns
+ * the fields the UI needs; provider secrets never leave the server.
+ */
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return jsonError("Unauthorized", "UNAUTHORIZED", 401);
+  }
 
-    const query = req.nextUrl.searchParams.get("q");
-    if (!query || query.trim().length < 2) {
-      return NextResponse.json(
-        { message: "Search query must be at least 2 characters" },
-        { status: 400 }
-      );
-    }
+  const parsed = SearchQuerySchema.safeParse({
+    q: req.nextUrl.searchParams.get("q") ?? "",
+    limit: req.nextUrl.searchParams.get("limit") ?? undefined,
+  });
 
-    const results = await youtubesearchapi.GetListByKeyword(
-      query,
-      false, // not playlist
-      6,     // limit to 6 results
-      [{ type: "video" }]
+  if (!parsed.success) {
+    return jsonError(
+      `Search query must be between ${MIN_QUERY_LENGTH} and ${MAX_QUERY_LENGTH} characters.`,
+      "INVALID_QUERY",
+      400
     );
+  }
 
-        const videos = ((results && results.items) || [])
-      .filter((item: any) => item && item.type === "video" && item.id)
-      .slice(0, 6)
-      .map((item: any) => ({
-        id: item.id,
-        title: item.title || "Unknown",
-        thumbnail: item.thumbnail?.thumbnails?.[0]?.url || `https://img.youtube.com/vi/${item.id}/mqdefault.jpg`,
-        channelTitle: item.channelTitle || "",
-        length: item.length?.simpleText || "",
-        url: `https://www.youtube.com/watch?v=${item.id}`,
-      }));
+  const query = normalizeQuery(parsed.data.q);
 
-    return NextResponse.json({ results: videos });
-  } catch (e) {
-    console.error("Search error:", e);
+  const rate = searchLimiter.check(session.user.email);
+  if (!rate.allowed) {
     return NextResponse.json(
-      { message: "Error searching YouTube", error: String(e) },
-      { status: 500 }
+      { message: "Too many searches. Please slow down and try again shortly.", code: "RATE_LIMITED", results: [] },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
     );
+  }
+
+  try {
+    const provider = getMusicProvider();
+    const results = await provider.searchTracks(query, { limit: parsed.data.limit });
+    return NextResponse.json({ provider: provider.id, query, results });
+  } catch (error) {
+    if (isMusicError(error)) {
+      const status = error.status >= 400 && error.status < 600 ? error.status : 502;
+      return jsonError(error.message, error.code, status, { retryable: error.retryable });
+    }
+    console.error("Music search failed:", error);
+    return jsonError("Song search is temporarily unavailable.", "PROVIDER_UNAVAILABLE", 502, {
+      retryable: true,
+    });
   }
 }

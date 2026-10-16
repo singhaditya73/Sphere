@@ -60,7 +60,8 @@ export type RoomMode = (typeof RoomMode)[keyof typeof RoomMode]
 
 export const StreamType: {
   Spotify: 'Spotify',
-  Youtube: 'Youtube'
+  Youtube: 'Youtube',
+  Itunes: 'Itunes'
 };
 
 export type StreamType = (typeof StreamType)[keyof typeof StreamType]
@@ -3776,8 +3777,18 @@ export namespace Prisma {
 
   export type AggregateStream = {
     _count: StreamCountAggregateOutputType | null
+    _avg: StreamAvgAggregateOutputType | null
+    _sum: StreamSumAggregateOutputType | null
     _min: StreamMinAggregateOutputType | null
     _max: StreamMaxAggregateOutputType | null
+  }
+
+  export type StreamAvgAggregateOutputType = {
+    duration: number | null
+  }
+
+  export type StreamSumAggregateOutputType = {
+    duration: number | null
   }
 
   export type StreamMinAggregateOutputType = {
@@ -3786,8 +3797,11 @@ export namespace Prisma {
     url: string | null
     extractedId: string | null
     title: string | null
+    artist: string | null
+    duration: number | null
     smallImg: string | null
     bigImg: string | null
+    previewUrl: string | null
     active: boolean | null
     played: boolean | null
     userId: string | null
@@ -3801,8 +3815,11 @@ export namespace Prisma {
     url: string | null
     extractedId: string | null
     title: string | null
+    artist: string | null
+    duration: number | null
     smallImg: string | null
     bigImg: string | null
+    previewUrl: string | null
     active: boolean | null
     played: boolean | null
     userId: string | null
@@ -3816,8 +3833,11 @@ export namespace Prisma {
     url: number
     extractedId: number
     title: number
+    artist: number
+    duration: number
     smallImg: number
     bigImg: number
+    previewUrl: number
     active: number
     played: number
     userId: number
@@ -3827,14 +3847,25 @@ export namespace Prisma {
   }
 
 
+  export type StreamAvgAggregateInputType = {
+    duration?: true
+  }
+
+  export type StreamSumAggregateInputType = {
+    duration?: true
+  }
+
   export type StreamMinAggregateInputType = {
     id?: true
     type?: true
     url?: true
     extractedId?: true
     title?: true
+    artist?: true
+    duration?: true
     smallImg?: true
     bigImg?: true
+    previewUrl?: true
     active?: true
     played?: true
     userId?: true
@@ -3848,8 +3879,11 @@ export namespace Prisma {
     url?: true
     extractedId?: true
     title?: true
+    artist?: true
+    duration?: true
     smallImg?: true
     bigImg?: true
+    previewUrl?: true
     active?: true
     played?: true
     userId?: true
@@ -3863,8 +3897,11 @@ export namespace Prisma {
     url?: true
     extractedId?: true
     title?: true
+    artist?: true
+    duration?: true
     smallImg?: true
     bigImg?: true
+    previewUrl?: true
     active?: true
     played?: true
     userId?: true
@@ -3911,6 +3948,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: StreamAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: StreamSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: StreamMinAggregateInputType
@@ -3941,6 +3990,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: StreamCountAggregateInputType | true
+    _avg?: StreamAvgAggregateInputType
+    _sum?: StreamSumAggregateInputType
     _min?: StreamMinAggregateInputType
     _max?: StreamMaxAggregateInputType
   }
@@ -3951,14 +4002,19 @@ export namespace Prisma {
     url: string
     extractedId: string
     title: string
+    artist: string | null
+    duration: number | null
     smallImg: string
     bigImg: string
+    previewUrl: string | null
     active: boolean
     played: boolean
     userId: string
     roomId: string
     createdAt: Date
     _count: StreamCountAggregateOutputType | null
+    _avg: StreamAvgAggregateOutputType | null
+    _sum: StreamSumAggregateOutputType | null
     _min: StreamMinAggregateOutputType | null
     _max: StreamMaxAggregateOutputType | null
   }
@@ -3983,8 +4039,11 @@ export namespace Prisma {
     url?: boolean
     extractedId?: boolean
     title?: boolean
+    artist?: boolean
+    duration?: boolean
     smallImg?: boolean
     bigImg?: boolean
+    previewUrl?: boolean
     active?: boolean
     played?: boolean
     userId?: boolean
@@ -4002,8 +4061,11 @@ export namespace Prisma {
     url?: boolean
     extractedId?: boolean
     title?: boolean
+    artist?: boolean
+    duration?: boolean
     smallImg?: boolean
     bigImg?: boolean
+    previewUrl?: boolean
     active?: boolean
     played?: boolean
     userId?: boolean
@@ -4019,8 +4081,11 @@ export namespace Prisma {
     url?: boolean
     extractedId?: boolean
     title?: boolean
+    artist?: boolean
+    duration?: boolean
     smallImg?: boolean
     bigImg?: boolean
+    previewUrl?: boolean
     active?: boolean
     played?: boolean
     userId?: boolean
@@ -4036,8 +4101,11 @@ export namespace Prisma {
     url?: boolean
     extractedId?: boolean
     title?: boolean
+    artist?: boolean
+    duration?: boolean
     smallImg?: boolean
     bigImg?: boolean
+    previewUrl?: boolean
     active?: boolean
     played?: boolean
     userId?: boolean
@@ -4045,7 +4113,7 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type StreamOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "url" | "extractedId" | "title" | "smallImg" | "bigImg" | "active" | "played" | "userId" | "roomId" | "createdAt", ExtArgs["result"]["stream"]>
+  export type StreamOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "url" | "extractedId" | "title" | "artist" | "duration" | "smallImg" | "bigImg" | "previewUrl" | "active" | "played" | "userId" | "roomId" | "createdAt", ExtArgs["result"]["stream"]>
   export type StreamInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     upvotes?: boolean | Stream$upvotesArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -4074,8 +4142,11 @@ export namespace Prisma {
       url: string
       extractedId: string
       title: string
+      artist: string | null
+      duration: number | null
       smallImg: string
       bigImg: string
+      previewUrl: string | null
       active: boolean
       played: boolean
       userId: string
@@ -4512,8 +4583,11 @@ export namespace Prisma {
     readonly url: FieldRef<"Stream", 'String'>
     readonly extractedId: FieldRef<"Stream", 'String'>
     readonly title: FieldRef<"Stream", 'String'>
+    readonly artist: FieldRef<"Stream", 'String'>
+    readonly duration: FieldRef<"Stream", 'Int'>
     readonly smallImg: FieldRef<"Stream", 'String'>
     readonly bigImg: FieldRef<"Stream", 'String'>
+    readonly previewUrl: FieldRef<"Stream", 'String'>
     readonly active: FieldRef<"Stream", 'Boolean'>
     readonly played: FieldRef<"Stream", 'Boolean'>
     readonly userId: FieldRef<"Stream", 'String'>
@@ -7110,8 +7184,11 @@ export namespace Prisma {
     url: 'url',
     extractedId: 'extractedId',
     title: 'title',
+    artist: 'artist',
+    duration: 'duration',
     smallImg: 'smallImg',
     bigImg: 'bigImg',
+    previewUrl: 'previewUrl',
     active: 'active',
     played: 'played',
     userId: 'userId',
@@ -7440,8 +7517,11 @@ export namespace Prisma {
     url?: StringFilter<"Stream"> | string
     extractedId?: StringFilter<"Stream"> | string
     title?: StringFilter<"Stream"> | string
+    artist?: StringNullableFilter<"Stream"> | string | null
+    duration?: IntNullableFilter<"Stream"> | number | null
     smallImg?: StringFilter<"Stream"> | string
     bigImg?: StringFilter<"Stream"> | string
+    previewUrl?: StringNullableFilter<"Stream"> | string | null
     active?: BoolFilter<"Stream"> | boolean
     played?: BoolFilter<"Stream"> | boolean
     userId?: StringFilter<"Stream"> | string
@@ -7458,8 +7538,11 @@ export namespace Prisma {
     url?: SortOrder
     extractedId?: SortOrder
     title?: SortOrder
+    artist?: SortOrderInput | SortOrder
+    duration?: SortOrderInput | SortOrder
     smallImg?: SortOrder
     bigImg?: SortOrder
+    previewUrl?: SortOrderInput | SortOrder
     active?: SortOrder
     played?: SortOrder
     userId?: SortOrder
@@ -7479,8 +7562,11 @@ export namespace Prisma {
     url?: StringFilter<"Stream"> | string
     extractedId?: StringFilter<"Stream"> | string
     title?: StringFilter<"Stream"> | string
+    artist?: StringNullableFilter<"Stream"> | string | null
+    duration?: IntNullableFilter<"Stream"> | number | null
     smallImg?: StringFilter<"Stream"> | string
     bigImg?: StringFilter<"Stream"> | string
+    previewUrl?: StringNullableFilter<"Stream"> | string | null
     active?: BoolFilter<"Stream"> | boolean
     played?: BoolFilter<"Stream"> | boolean
     userId?: StringFilter<"Stream"> | string
@@ -7497,16 +7583,21 @@ export namespace Prisma {
     url?: SortOrder
     extractedId?: SortOrder
     title?: SortOrder
+    artist?: SortOrderInput | SortOrder
+    duration?: SortOrderInput | SortOrder
     smallImg?: SortOrder
     bigImg?: SortOrder
+    previewUrl?: SortOrderInput | SortOrder
     active?: SortOrder
     played?: SortOrder
     userId?: SortOrder
     roomId?: SortOrder
     createdAt?: SortOrder
     _count?: StreamCountOrderByAggregateInput
+    _avg?: StreamAvgOrderByAggregateInput
     _max?: StreamMaxOrderByAggregateInput
     _min?: StreamMinOrderByAggregateInput
+    _sum?: StreamSumOrderByAggregateInput
   }
 
   export type StreamScalarWhereWithAggregatesInput = {
@@ -7518,8 +7609,11 @@ export namespace Prisma {
     url?: StringWithAggregatesFilter<"Stream"> | string
     extractedId?: StringWithAggregatesFilter<"Stream"> | string
     title?: StringWithAggregatesFilter<"Stream"> | string
+    artist?: StringNullableWithAggregatesFilter<"Stream"> | string | null
+    duration?: IntNullableWithAggregatesFilter<"Stream"> | number | null
     smallImg?: StringWithAggregatesFilter<"Stream"> | string
     bigImg?: StringWithAggregatesFilter<"Stream"> | string
+    previewUrl?: StringNullableWithAggregatesFilter<"Stream"> | string | null
     active?: BoolWithAggregatesFilter<"Stream"> | boolean
     played?: BoolWithAggregatesFilter<"Stream"> | boolean
     userId?: StringWithAggregatesFilter<"Stream"> | string
@@ -7810,8 +7904,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     createdAt?: Date | string
@@ -7826,8 +7923,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     userId: string
@@ -7842,8 +7942,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7858,8 +7961,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     userId?: StringFieldUpdateOperationsInput | string
@@ -7874,8 +7980,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     userId: string
@@ -7889,8 +7998,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7902,8 +8014,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     userId?: StringFieldUpdateOperationsInput | string
@@ -8323,6 +8438,17 @@ export namespace Prisma {
     not?: NestedEnumStreamTypeFilter<$PrismaModel> | $Enums.StreamType
   }
 
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type RoomScalarRelationFilter = {
     is?: RoomWhereInput
     isNot?: RoomWhereInput
@@ -8334,13 +8460,20 @@ export namespace Prisma {
     url?: SortOrder
     extractedId?: SortOrder
     title?: SortOrder
+    artist?: SortOrder
+    duration?: SortOrder
     smallImg?: SortOrder
     bigImg?: SortOrder
+    previewUrl?: SortOrder
     active?: SortOrder
     played?: SortOrder
     userId?: SortOrder
     roomId?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type StreamAvgOrderByAggregateInput = {
+    duration?: SortOrder
   }
 
   export type StreamMaxOrderByAggregateInput = {
@@ -8349,8 +8482,11 @@ export namespace Prisma {
     url?: SortOrder
     extractedId?: SortOrder
     title?: SortOrder
+    artist?: SortOrder
+    duration?: SortOrder
     smallImg?: SortOrder
     bigImg?: SortOrder
+    previewUrl?: SortOrder
     active?: SortOrder
     played?: SortOrder
     userId?: SortOrder
@@ -8364,13 +8500,20 @@ export namespace Prisma {
     url?: SortOrder
     extractedId?: SortOrder
     title?: SortOrder
+    artist?: SortOrder
+    duration?: SortOrder
     smallImg?: SortOrder
     bigImg?: SortOrder
+    previewUrl?: SortOrder
     active?: SortOrder
     played?: SortOrder
     userId?: SortOrder
     roomId?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type StreamSumOrderByAggregateInput = {
+    duration?: SortOrder
   }
 
   export type EnumStreamTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -8381,6 +8524,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumStreamTypeFilter<$PrismaModel>
     _max?: NestedEnumStreamTypeFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type StreamScalarRelationFilter = {
@@ -8767,6 +8926,14 @@ export namespace Prisma {
     set?: $Enums.StreamType
   }
 
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type UpvoteUpdateManyWithoutStreamNestedInput = {
     create?: XOR<UpvoteCreateWithoutStreamInput, UpvoteUncheckedCreateWithoutStreamInput> | UpvoteCreateWithoutStreamInput[] | UpvoteUncheckedCreateWithoutStreamInput[]
     connectOrCreate?: UpvoteCreateOrConnectWithoutStreamInput | UpvoteCreateOrConnectWithoutStreamInput[]
@@ -9092,14 +9259,44 @@ export namespace Prisma {
     _max?: NestedEnumStreamTypeFilter<$PrismaModel>
   }
 
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
   export type StreamCreateWithoutUserInput = {
     id?: string
     type: $Enums.StreamType
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     createdAt?: Date | string
@@ -9113,8 +9310,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     roomId: string
@@ -9241,8 +9441,11 @@ export namespace Prisma {
     url?: StringFilter<"Stream"> | string
     extractedId?: StringFilter<"Stream"> | string
     title?: StringFilter<"Stream"> | string
+    artist?: StringNullableFilter<"Stream"> | string | null
+    duration?: IntNullableFilter<"Stream"> | number | null
     smallImg?: StringFilter<"Stream"> | string
     bigImg?: StringFilter<"Stream"> | string
+    previewUrl?: StringNullableFilter<"Stream"> | string | null
     active?: BoolFilter<"Stream"> | boolean
     played?: BoolFilter<"Stream"> | boolean
     userId?: StringFilter<"Stream"> | string
@@ -9366,8 +9569,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     createdAt?: Date | string
@@ -9381,8 +9587,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     userId: string
@@ -9686,8 +9895,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     createdAt?: Date | string
@@ -9701,8 +9913,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     userId: string
@@ -9763,8 +9978,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -9778,8 +9996,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     userId?: StringFieldUpdateOperationsInput | string
@@ -9925,8 +10146,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     roomId: string
@@ -9964,8 +10188,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -9979,8 +10206,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     roomId?: StringFieldUpdateOperationsInput | string
@@ -9994,8 +10224,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     roomId?: StringFieldUpdateOperationsInput | string
@@ -10087,8 +10320,11 @@ export namespace Prisma {
     url: string
     extractedId: string
     title?: string
+    artist?: string | null
+    duration?: number | null
     smallImg?: string
     bigImg?: string
+    previewUrl?: string | null
     active?: boolean
     played?: boolean
     userId: string
@@ -10108,8 +10344,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10123,8 +10362,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     userId?: StringFieldUpdateOperationsInput | string
@@ -10138,8 +10380,11 @@ export namespace Prisma {
     url?: StringFieldUpdateOperationsInput | string
     extractedId?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     smallImg?: StringFieldUpdateOperationsInput | string
     bigImg?: StringFieldUpdateOperationsInput | string
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
     active?: BoolFieldUpdateOperationsInput | boolean
     played?: BoolFieldUpdateOperationsInput | boolean
     userId?: StringFieldUpdateOperationsInput | string

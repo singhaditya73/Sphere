@@ -5,11 +5,13 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Play, ThumbsUp, Pause, SkipForward, Music, Send,
-  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones
+  QrCode, Copy, Check, Users, MessageSquare, Volume2, ArrowLeft, Disc, Sparkles, Plus, Star, Trash2, Globe, Headphones, AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Appbar } from "@/components/Appbar";
 import { UsernameModal } from "@/components/UsernameModal";
+import { SongSearchDialog, type AddedTrackInfo } from "@/components/song-search-dialog";
+import { formatDuration } from "@/lib/music/youtube-parse";
 
 interface ChatMessage {
   id: string;
@@ -19,27 +21,27 @@ interface ChatMessage {
   createdAt: string;
 }
 
-interface SearchResult {
-  id: string;
-  title: string;
-  thumbnail: string;
-  channelTitle: string;
-  length: string;
-  url: string;
-}
-
 interface Stream {
   id: string;
   type: string;
   extractedId: string;
   url: string;
   title: string;
+  artist?: string | null;
+  duration?: number | null;
   smallImg: string;
   bigImg: string;
+  /** Provider-hosted audio preview (used for keyless providers like iTunes). */
+  previewUrl?: string | null;
   upvotes: number;
   addedBy: string;
   addedByUsername: string | null;
   createdAt: string;
+}
+
+/** True when a stream should play through the preview `<audio>` element. */
+function isPreviewStream(stream: Stream | null | undefined): stream is Stream & { previewUrl: string } {
+  return stream?.type === "Itunes" && Boolean(stream.previewUrl);
 }
 
 interface Room {
@@ -65,8 +67,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addingStream, setAddingStream] = useState(false);
-  const [newStreamUrl, setNewStreamUrl] = useState("");
   const [upvotingIds, setUpvotingIds] = useState<Set<string>>(new Set());
   const [myUpvotedStreamIds, setMyUpvotedStreamIds] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(true);
@@ -76,8 +76,11 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [duration, setDuration] = useState(0);
   const [loadingNext, setLoadingNext] = useState(false);
   const playerRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previewStreamIdRef = useRef<string | null>(null);
 
   const isHost = session?.user?.email === room?.host?.email;
+  const currentIsPreview = isPreviewStream(room?.currentStream);
 
   // Chat & social activity log feed
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -87,12 +90,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Native song search dialog
+  const [showAddSong, setShowAddSong] = useState(false);
+
+  // Transient toast notifications
+  const [toast, setToast] = useState<{ id: number; kind: "success" | "info" | "error"; message: string } | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Guards against a slower poll response overwriting newer queue state.
+  const roomRequestSeq = useRef(0);
 
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -104,7 +110,39 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     if (playerRef.current && playerRef.current.setVolume) {
       playerRef.current.setVolume(newVolume);
     }
+    if (audioRef.current) {
+      audioRef.current.volume = Math.min(1, Math.max(0, newVolume / 100));
+    }
   };
+
+  // Unified transport controls that work for both the YouTube player and the
+  // preview <audio> element, so the rest of the UI does not care which is active.
+  const playCurrentMedia = useCallback(() => {
+    if (isPreviewStream(room?.currentStream)) {
+      void audioRef.current?.play().catch(() => {});
+    } else {
+      playerRef.current?.playVideo?.();
+    }
+  }, [room?.currentStream]);
+
+  const pauseCurrentMedia = useCallback(() => {
+    if (isPreviewStream(room?.currentStream)) {
+      audioRef.current?.pause();
+    } else {
+      playerRef.current?.pauseVideo?.();
+    }
+  }, [room?.currentStream]);
+
+  const seekCurrentMedia = useCallback(
+    (seconds: number) => {
+      if (isPreviewStream(room?.currentStream)) {
+        if (audioRef.current) audioRef.current.currentTime = seconds;
+      } else {
+        playerRef.current?.seekTo?.(seconds, true);
+      }
+    },
+    [room?.currentStream]
+  );
 
   useEffect(() => {
     if (!(window as any).YT) {
@@ -172,9 +210,59 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
   }, [isApiReady, room?.currentStream?.extractedId]);
 
+  // Drive the preview <audio> element for keyless (iTunes) tracks. YouTube
+  // playback is stopped first so only one source is ever audible.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const stream = room?.currentStream;
+    if (!isPreviewStream(stream)) {
+      audio.pause();
+      if (previewStreamIdRef.current) {
+        audio.removeAttribute("src");
+        audio.load();
+        previewStreamIdRef.current = null;
+      }
+      return;
+    }
+
+    try {
+      playerRef.current?.stopVideo?.();
+    } catch {
+      // The YouTube player may not be initialised yet.
+    }
+
+    const isNewStream = previewStreamIdRef.current !== stream.id;
+    if (isNewStream) {
+      previewStreamIdRef.current = stream.id;
+      audio.src = stream.previewUrl;
+      audio.currentTime = 0;
+      setProgress(0);
+      setDuration(0);
+    }
+    audio.volume = Math.min(1, Math.max(0, volume / 100));
+
+    // Listen Together follows the server clock; otherwise a freshly loaded
+    // track auto-plays and the local transport state wins afterwards.
+    const shouldPlay =
+      room?.mode === "listen_together" ? Boolean(room?.isPlaying) : isNewStream || isPlaying;
+    if (shouldPlay) void audio.play().catch(() => {});
+    else audio.pause();
+    setIsPlaying(shouldPlay);
+  }, [
+    room?.currentStream?.id,
+    room?.currentStream?.previewUrl,
+    room?.currentStream?.type,
+    room?.isPlaying,
+    room?.mode,
+    isPlaying,
+    volume,
+  ]);
+
   useEffect(() => {
     if (typeof window !== "undefined" && "mediaSession" in navigator && room?.currentStream) {
-      const artworkUrl = room.currentStream.bigImg || room.currentStream.smallImg || `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`;
+      const artworkUrl = room.currentStream.bigImg || room.currentStream.smallImg || (room.currentStream.type === "Youtube" ? `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg` : "");
       navigator.mediaSession.metadata = new MediaMetadata({
         title: room.currentStream.title || "Unknown Track",
         artist: "BeatNet",
@@ -189,17 +277,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       });
 
       navigator.mediaSession.setActionHandler("play", () => {
-        if (playerRef.current) {
-          playerRef.current.playVideo();
-          setIsPlaying(true);
-        }
+        playCurrentMedia();
+        setIsPlaying(true);
       });
 
       navigator.mediaSession.setActionHandler("pause", () => {
-        if (playerRef.current) {
-          playerRef.current.pauseVideo();
-          setIsPlaying(false);
-        }
+        pauseCurrentMedia();
+        setIsPlaying(false);
       });
 
       if (isHost) {
@@ -210,33 +294,67 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         navigator.mediaSession.setActionHandler("nexttrack", null);
       }
     }
-  }, [room?.currentStream?.extractedId, room?.name, isHost]);
+  }, [room?.currentStream?.extractedId, room?.name, isHost, playCurrentMedia, pauseCurrentMedia]);
 
   useEffect(() => {
     const isListenTogether = room?.mode === "listen_together";
     const timer = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        if (isListenTogether && room) {
-          // In Listen Together mode, compute position from server clock
-          let serverPos = room.playbackPosition;
-          if (room.isPlaying && room.playbackStartedAt) {
-            const elapsed = (Date.now() - new Date(room.playbackStartedAt).getTime()) / 1000;
-            serverPos = room.playbackPosition + elapsed;
-          }
-          setProgress(serverPos);
-        } else {
-          const time = playerRef.current.getCurrentTime();
-          setProgress(time);
+      const audio = audioRef.current;
+      const usingPreview = isPreviewStream(room?.currentStream);
+
+      if (isListenTogether && room) {
+        // In Listen Together mode, compute position from the server clock.
+        let serverPos = room.playbackPosition;
+        if (room.isPlaying && room.playbackStartedAt) {
+          const elapsed = (Date.now() - new Date(room.playbackStartedAt).getTime()) / 1000;
+          serverPos = room.playbackPosition + elapsed;
         }
+        setProgress(serverPos);
+        if (usingPreview && audio && Number.isFinite(audio.duration)) {
+          setDuration(audio.duration);
+        }
+      } else if (usingPreview && audio) {
+        setProgress(audio.currentTime || 0);
+        if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+      } else if (playerRef.current && playerRef.current.getCurrentTime) {
+        setProgress(playerRef.current.getCurrentTime());
         if (!duration) setDuration(playerRef.current.getDuration());
       }
     }, 500);
     return () => clearInterval(timer);
-  }, [duration, room?.mode, room?.isPlaying, room?.playbackPosition, room?.playbackStartedAt]);
+  }, [
+    duration,
+    room?.mode,
+    room?.isPlaying,
+    room?.playbackPosition,
+    room?.playbackStartedAt,
+    room?.currentStream?.id,
+  ]);
 
   // Sync player to server state for Listen Together mode
   useEffect(() => {
-    if (room?.mode !== "listen_together" || !playerRef.current) return;
+    if (room?.mode !== "listen_together") return;
+
+    const audio = audioRef.current;
+    if (isPreviewStream(room.currentStream) && audio) {
+      if (room.isPlaying) {
+        if (audio.paused) void audio.play().catch(() => {});
+        if (room.playbackStartedAt) {
+          const elapsed = (Date.now() - new Date(room.playbackStartedAt).getTime()) / 1000;
+          const expectedPos = room.playbackPosition + elapsed;
+          if (Math.abs(expectedPos - audio.currentTime) > 2) audio.currentTime = expectedPos;
+        }
+      } else {
+        if (!audio.paused) audio.pause();
+        if (Math.abs(room.playbackPosition - audio.currentTime) > 1) {
+          audio.currentTime = room.playbackPosition;
+        }
+      }
+      setIsPlaying(room.isPlaying);
+      return;
+    }
+
+    if (!playerRef.current) return;
 
     try {
       // Sync play/pause state
@@ -273,11 +391,18 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     } catch (e) {
       // Player might not be ready yet
     }
-  }, [room?.isPlaying, room?.playbackPosition, room?.playbackStartedAt, room?.mode]);
+  }, [
+    room?.isPlaying,
+    room?.playbackPosition,
+    room?.playbackStartedAt,
+    room?.mode,
+    room?.currentStream?.id,
+  ]);
 
   const fetchRoomData = async () => {
+    const seq = ++roomRequestSeq.current;
     try {
-      const response = await fetch(`/api/rooms/${roomId}`);
+      const response = await fetch(`/api/rooms/${roomId}`, { cache: "no-store" });
       if (!response.ok) {
         console.error("Failed to fetch room:", response.statusText);
         return;
@@ -285,6 +410,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
+        // Ignore responses that arrive after a newer request started.
+        if (seq !== roomRequestSeq.current) return;
+
         setRoom(data.room);
         localStorage.setItem("sphere_active_room_id", roomId);
 
@@ -313,7 +441,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      if (seq === roomRequestSeq.current) setLoading(false);
     }
   };
 
@@ -390,37 +518,53 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     }
   };
 
-  const handleSearch = useCallback(async (query: string) => {
-    if (query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    setSearching(true);
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      if (response.ok) {
-        setSearchResults(data.results || []);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSearching(false);
-    }
+  const showToast = useCallback((kind: "success" | "info" | "error", message: string) => {
+    setToast({ id: Date.now(), kind, message });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
-  const handleSearchInput = (value: string) => {
-    setSearchQuery(value);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => handleSearch(value), 400);
-  };
+  const handleTrackAdded = useCallback(
+    (info: AddedTrackInfo) => {
+      if (info.duplicate) {
+        showToast("info", "That track is already in the queue.");
+      } else {
+        showToast("success", "Added to the queue — everyone will see it.");
+      }
 
-  const handleSelectSearchResult = (result: SearchResult) => {
-    setNewStreamUrl(result.url);
-    setSearchQuery("");
-    setSearchResults([]);
-    setShowSearch(false);
-  };
+      // Optimistically slot a searched track into the queue for instant feedback.
+      // Pasted links are reconciled by the refetch below.
+      const isSearchedTrack =
+        info.track.source === "youtube-data-api" || info.track.source === "itunes-search-api";
+      if (!info.duplicate && isSearchedTrack && info.trackId) {
+        setRoom((prev) => {
+          if (!prev) return prev;
+          if (prev.queue.some((s) => s.extractedId === info.trackId || s.id === info.trackId)) return prev;
+          const optimistic: Stream = {
+            id: `optimistic-${info.trackId}`,
+            type: info.track.provider === "itunes" ? "Itunes" : "Youtube",
+            extractedId: info.trackId,
+            url: info.track.url,
+            title: info.track.title,
+            artist: info.track.artist || null,
+            duration: info.track.durationSeconds,
+            smallImg: info.track.thumbnail,
+            bigImg: info.track.artwork,
+            previewUrl: info.track.previewUrl ?? null,
+            upvotes: 0,
+            addedBy: session?.user?.email ?? "",
+            addedByUsername: null,
+            createdAt: new Date().toISOString(),
+          };
+          return { ...prev, queue: [...prev.queue, optimistic] };
+        });
+      }
+
+      // Reconcile with the server (real id, metadata, and ordering).
+      void fetchRoomData();
+    },
+    [fetchRoomData, session?.user?.email, showToast]
+  );
 
   useEffect(() => {
     if (!session) {
@@ -428,16 +572,31 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       router.push(`/login?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
-    fetchRoomData();
-    fetchMyUpvotes();
-    fetchMessages();
 
-    const interval = setInterval(() => {
+    const refresh = () => {
       fetchRoomData();
       fetchMyUpvotes();
       fetchMessages();
+    };
+
+    refresh();
+
+    const interval = setInterval(() => {
+      // Skip polling while the tab is in the background to avoid wasted requests.
+      if (typeof document !== "undefined" && document.hidden) return;
+      refresh();
     }, 2000);
-    return () => clearInterval(interval);
+
+    // Catch up immediately when the user returns to the tab.
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [session, roomId]);
 
   useEffect(() => {
@@ -452,44 +611,6 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       isFirstLoad.current = false;
     }
   }, [messages]);
-
-  const handleAddStream = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStreamUrl.trim() || !session?.user?.email) return;
-
-    setAddingStream(true);
-    try {
-      const userResponse = await fetch(`/api/user`);
-      const userData = await userResponse.json();
-
-      if (!userResponse.ok || !userData.user) {
-        alert("Failed to get user info");
-        return;
-      }
-
-      const response = await fetch("/api/streams", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          creatorId: userData.user.id,
-          url: newStreamUrl,
-          roomId: roomId,
-        }),
-      });
-
-      if (response.ok) {
-        setNewStreamUrl("");
-        fetchRoomData();
-      } else {
-        const error = await response.json();
-        alert(error.message || "Failed to add track");
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setAddingStream(false);
-    }
-  };
 
   const handleUpvote = async (streamId: string, hasUpvoted: boolean) => {
     setUpvotingIds((prev) => new Set(prev).add(streamId));
@@ -614,12 +735,34 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
   // Dynamic colors placeholder logic - background artwork blur
-  const currentArtworkUrl = room.currentStream?.bigImg || room.currentStream?.smallImg || `https://img.youtube.com/vi/${room.currentStream?.extractedId}/maxresdefault.jpg`;
+  const currentArtworkUrl =
+    room.currentStream?.bigImg ||
+    room.currentStream?.smallImg ||
+    (room.currentStream?.type === "Youtube"
+      ? `https://img.youtube.com/vi/${room.currentStream.extractedId}/maxresdefault.jpg`
+      : "");
 
   return (
     <div className="flex min-h-screen flex-col bg-[#090909] text-[#FAFAFA] font-sans pb-36">
       <Appbar />
       <UsernameModal />
+
+      {/* Hidden audio element used for keyless preview playback (e.g. iTunes). */}
+      <audio
+        ref={audioRef}
+        preload="none"
+        className="hidden"
+        onLoadedMetadata={(event) => {
+          const value = event.currentTarget.duration;
+          if (Number.isFinite(value) && value > 0) setDuration(value);
+        }}
+        onEnded={() => {
+          // Only the host advances when a preview ends. Previews finish at almost
+          // the same instant for everyone, so letting every client call "next"
+          // would race and skip tracks.
+          if (isHost && room.currentStream?.type === "Itunes") void handlePlayNext();
+        }}
+      />
 
       <main className="container flex-1 py-20 md:py-24 px-4 md:px-6 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-6 relative">
 
@@ -711,8 +854,13 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 <div className="flex-1 min-w-0 flex flex-col justify-between md:h-56 h-auto gap-5 py-1.5 self-stretch w-full">
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-[#10B981]">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-[#10B981] flex items-center gap-1.5">
                         Now Playing
+                        {currentIsPreview && (
+                          <span className="normal-case tracking-normal text-[9px] font-bold text-[#818CF8] bg-[#818CF8]/10 border border-[#818CF8]/20 rounded-full px-1.5 py-0.5">
+                            30s preview
+                          </span>
+                        )}
                       </span>
                       {isPlaying && (
                         <div className="waveform">
@@ -747,8 +895,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                           });
                           setProgress(newTime);
                           fetchRoomData();
-                        } else if (playerRef.current) {
-                          playerRef.current.seekTo(newTime, true);
+                        } else {
+                          seekCurrentMedia(newTime);
                           setProgress(newTime);
                         }
                       }}
@@ -777,9 +925,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                           });
                           setIsPlaying(!isPlaying);
                           fetchRoomData();
-                        } else if (playerRef.current) {
-                          if (isPlaying) playerRef.current.pauseVideo();
-                          else playerRef.current.playVideo();
+                        } else {
+                          if (isPlaying) pauseCurrentMedia();
+                          else playCurrentMedia();
                           setIsPlaying(!isPlaying);
                         }
                       }}
@@ -803,7 +951,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
               <div className="flex flex-col items-center justify-center py-16 text-center text-[#A1A1AA] relative z-10">
                 <Music className="w-10 h-10 opacity-35 mb-3" />
                 <p className="text-sm font-semibold text-white">No active track playing</p>
-                <p className="text-xs text-[#71717A] mt-1 max-w-xs">Drop a YouTube link below or search for tracks to start the session.</p>
+                <p className="text-xs text-[#71717A] mt-1 max-w-xs">Add a track below or search for songs to start the session.</p>
                 {isHost && room.queue.length > 0 && (
                   <button
                     onClick={handlePlayNext}
@@ -816,71 +964,34 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             )}
           </div>
 
-          {/* Add Song / Search panel */}
-          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#A1A1AA]">Queue a track</span>
+          {/* Add Song action */}
+          <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-heading font-black text-white">Grow the queue</p>
+                <p className="text-[10px] text-[#A1A1AA] mt-0.5">
+                  Search in-app or paste a link — everyone votes on what plays next.
+                </p>
+              </div>
               <button
-                onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery(""); }}
-                className="text-xs text-[#10B981] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                onClick={() => setShowAddSong(true)}
+                className="shrink-0 h-10 rounded-full bg-[#10B981] hover:bg-[#10B981]/90 text-white text-xs font-bold px-5 inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-97"
               >
-                <Plus className="w-3.5 h-3.5" /> {showSearch ? "Paste URL" : "Search YouTube"}
+                <Plus className="w-4 h-4" /> Add Song
               </button>
             </div>
-
-            {showSearch ? (
-              <div className="relative">
-                <input
-                  placeholder="Search tracks on YouTube..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearchInput(e.target.value)}
-                  className="w-full bg-[#090909] border border-[#27272A] rounded-xl h-10 px-3.5 text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors pr-10"
-                />
-                {searching && (
-                  <Loader2 className="absolute right-3 top-3 w-4 h-4 animate-spin text-[#A1A1AA]" />
-                )}
-                {searchResults.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-2 space-y-1 max-h-60 overflow-y-auto rounded-xl border border-[#27272A] bg-[#121212]/95 backdrop-blur-md p-1.5 z-30 shadow-lg">
-                    {searchResults.map((result) => (
-                      <button
-                        key={result.id}
-                        onClick={() => handleSelectSearchResult(result)}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#18181B] transition-colors text-left group"
-                      >
-                        <img src={result.thumbnail} alt="" className="w-12 h-8 rounded object-cover flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-[#FAFAFA] truncate group-hover:text-[#10B981] transition-colors">{result.title}</p>
-                          <p className="text-[9px] text-[#A1A1AA] truncate">{result.channelTitle}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleAddStream} className="flex gap-2">
-                <input
-                  placeholder="Paste YouTube track URL..."
-                  value={newStreamUrl}
-                  onChange={(e) => setNewStreamUrl(e.target.value)}
-                  disabled={addingStream}
-                  className="flex-1 bg-[#090909] border border-[#27272A] rounded-xl h-10 px-3.5 text-xs text-white placeholder:text-[#71717A] focus:outline-none focus:border-[#10B981]/50 transition-colors"
-                />
-                <button
-                  type="submit"
-                  disabled={addingStream || !newStreamUrl.trim()}
-                  className="bg-[#10B981] hover:bg-[#10B981]/90 text-white h-10 text-xs font-bold rounded-xl px-5 transition-colors cursor-pointer"
-                >
-                  {addingStream ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : "Add Track"}
-                </button>
-              </form>
-            )}
           </div>
 
           {/* Queue Section (Styled as premium cards, no spreadsheet) */}
           <div className="bg-[#121212] border border-[#27272A] rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#27272A]/60">
               <span className="text-xs font-bold uppercase tracking-wider text-[#A1A1AA]">Upcoming Queue ({room.queue.length})</span>
+              <button
+                onClick={() => setShowAddSong(true)}
+                className="text-xs text-[#10B981] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Song
+              </button>
             </div>
 
             <div className="space-y-3">
@@ -892,6 +1003,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 ) : (
                   room.queue.map((stream, index) => {
                     const hasUpvoted = myUpvotedStreamIds.has(stream.id);
+                    const isCurrent = room.currentStream?.id === stream.id;
+                    const isOptimistic = stream.id.startsWith("optimistic-");
                     return (
                       <motion.div
                         layout
@@ -900,30 +1013,58 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ type: "spring", stiffness: 450, damping: 28 }}
                         key={stream.id}
-                        className="flex items-center gap-4 p-3.5 rounded-2xl border border-[#27272A]/60 bg-[#090909]/40 hover:bg-[#090909]/80 hover:border-[#27272A] transition-all group"
+                        className={`flex items-center gap-4 p-3.5 rounded-2xl border bg-[#090909]/40 hover:bg-[#090909]/80 transition-all group ${
+                          isCurrent ? "border-[#10B981]/40" : "border-[#27272A]/60 hover:border-[#27272A]"
+                        }`}
                       >
                         <span className="text-[10px] font-mono text-[#A1A1AA]/50 w-5 text-center font-bold">
                           {(index + 1).toString().padStart(2, '0')}
                         </span>
 
                         <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[#27272A]/60 bg-black">
-                          <img src={stream.smallImg || `https://img.youtube.com/vi/${stream.extractedId}/default.jpg`} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={
+                              stream.smallImg ||
+                              (stream.type === "Youtube"
+                                ? `https://img.youtube.com/vi/${stream.extractedId}/default.jpg`
+                                : "")
+                            }
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-[#FAFAFA] text-sm truncate group-hover:text-[#10B981] transition-colors">
-                            {stream.title}
-                          </h4>
-                          <p className="text-[10px] text-[#A1A1AA] mt-0.5">
-                            Added by <span className="text-[#FAFAFA]">{stream.addedByUsername || stream.addedBy?.split('@')[0] || "System"}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h4 className="font-bold text-[#FAFAFA] text-sm truncate group-hover:text-[#10B981] transition-colors">
+                              {stream.title}
+                            </h4>
+                            {isCurrent && (
+                              <span className="shrink-0 text-[8px] font-bold uppercase tracking-wider text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 rounded-full px-1.5 py-0.5">
+                                Now Playing
+                              </span>
+                            )}
+                          </div>
+                          {stream.artist && (
+                            <p className="text-[10px] text-[#A1A1AA] truncate mt-0.5">
+                              {stream.artist}
+                              {stream.duration ? <span className="text-[#71717A]"> · {formatDuration(stream.duration)}</span> : null}
+                            </p>
+                          )}
+                          <p className={`text-[10px] text-[#A1A1AA] ${stream.artist ? "mt-0.5" : "mt-0.5"}`}>
+                            {isOptimistic ? (
+                              <span className="text-[#10B981]">Adding to queue…</span>
+                            ) : (
+                              <>Added by <span className="text-[#FAFAFA]">{stream.addedByUsername || stream.addedBy?.split('@')[0] || "System"}</span></>
+                            )}
                           </p>
                         </div>
 
                         <motion.button
                           whileTap={{ scale: 0.96 }}
                           onClick={() => handleUpvote(stream.id, hasUpvoted)}
-                          disabled={upvotingIds.has(stream.id)}
-                          className={`flex items-center gap-1.5 h-8.5 rounded-full px-4 text-xs font-bold transition-all cursor-pointer ${hasUpvoted
+                          disabled={upvotingIds.has(stream.id) || isOptimistic}
+                          className={`flex items-center gap-1.5 h-8.5 rounded-full px-4 text-xs font-bold transition-all cursor-pointer disabled:opacity-60 ${hasUpvoted
                               ? "bg-[#10B981] text-white"
                               : "border border-[#27272A] text-[#A1A1AA] hover:text-[#10B981] hover:border-[#10B981]/50 bg-[#090909]/60"
                             }`}
@@ -1052,8 +1193,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     });
                     setProgress(newTime);
                     fetchRoomData();
-                  } else if (playerRef.current) {
-                    playerRef.current.seekTo(newTime, true);
+                  } else {
+                    seekCurrentMedia(newTime);
                     setProgress(newTime);
                   }
                 }}
@@ -1082,9 +1223,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                     });
                     setIsPlaying(!isPlaying);
                     fetchRoomData();
-                  } else if (playerRef.current) {
-                    if (isPlaying) playerRef.current.pauseVideo();
-                    else playerRef.current.playVideo();
+                  } else {
+                    if (isPlaying) pauseCurrentMedia();
+                    else playCurrentMedia();
                     setIsPlaying(!isPlaying);
                   }
                 }}
@@ -1179,6 +1320,49 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 Close
               </button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Native song search */}
+      <SongSearchDialog
+        open={showAddSong}
+        onOpenChange={setShowAddSong}
+        roomId={roomId}
+        queuedTrackIds={room.queue.map((s) => s.extractedId).filter(Boolean)}
+        onAdded={handleTrackAdded}
+      />
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[95] max-w-[92%] sm:max-w-md"
+            role="status"
+            aria-live="polite"
+          >
+            <div
+              className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 shadow-xl backdrop-blur-md text-xs font-semibold ${
+                toast.kind === "success"
+                  ? "bg-[#10B981]/10 border-[#10B981]/30 text-[#FAFAFA]"
+                  : toast.kind === "error"
+                  ? "bg-[#7F1D1D]/20 border-[#EF4444]/30 text-[#FAFAFA]"
+                  : "bg-[#121212]/95 border-[#27272A] text-[#FAFAFA]"
+              }`}
+            >
+              {toast.kind === "success" ? (
+                <Check className="w-4 h-4 text-[#10B981] shrink-0" />
+              ) : toast.kind === "error" ? (
+                <AlertCircle className="w-4 h-4 text-[#F87171] shrink-0" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-[#10B981] shrink-0" />
+              )}
+              <span className="truncate">{toast.message}</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

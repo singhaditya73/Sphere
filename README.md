@@ -2,11 +2,12 @@
 
 > **Music Powered by Democracy**
 
-BeatNet is a collaborative music streaming platform where users join rooms, add songs from YouTube or Spotify, and vote on what plays next. Let the crowd decide the playlist!
+BeatNet is a collaborative music streaming platform where users join rooms, search or paste songs (YouTube, Spotify, or keyless iTunes previews), and vote on what plays next. Let the crowd decide the playlist!
 
 ## ✨ Features
 
 - 🎪 **Room-Based Sessions** - Create or join music rooms
+- 🔎 **Native Song Search** - Find tracks inside a room with the Add Song dialog (keyless iTunes previews, or full-length YouTube with an API key)
 - 🔗 **Multi-Platform** - Support for YouTube and Spotify links
 - 👍 **Democratic Voting** - Upvote songs to influence the queue
 - 🎵 **Smart Queue** - Songs ordered by popularity
@@ -33,7 +34,8 @@ cd BeatNet
 npm install
 
 # Set up environment variables (see .env.example)
-# DATABASE_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+# DATABASE_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_SECRET
+# YOUTUBE_API_KEY (optional — full-length YouTube; otherwise keyless iTunes previews)
 
 # Run database migrations
 npx prisma migrate dev --name add_rooms
@@ -49,6 +51,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## 📖 Documentation
 
+- **[SONG_SEARCH.md](./SONG_SEARCH.md)** - Native song search, provider setup, API and limits
 - **[SETUP.md](./SETUP.md)** - Complete setup guide and feature documentation
 - **[MIGRATION.md](./MIGRATION.md)** - Database migration instructions
 
@@ -68,6 +71,8 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 - **Auth**: NextAuth.js
 - **UI**: Tailwind CSS + shadcn/ui
 - **Validation**: Zod
+- **Music Search**: keyless iTunes Search API by default; YouTube Data API v3 when keyed (server-side provider abstraction)
+- **Tests**: Node.js built-in test runner (`npm test`)
 
 ## 📁 Project Structure
 
@@ -85,8 +90,9 @@ beatnet/
 
 ## 🎵 Supported Platforms
 
-- **YouTube** - Full video link support
+- **YouTube** - Full video link support (and full-length in-app search with an API key)
 - **Spotify** - Track link support
+- **iTunes / Apple Music** - Keyless in-app search with 30-second preview playback
 
 ## 🤝 Contributing
 

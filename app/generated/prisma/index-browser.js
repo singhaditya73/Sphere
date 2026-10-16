@@ -144,8 +144,11 @@ exports.Prisma.StreamScalarFieldEnum = {
   url: 'url',
   extractedId: 'extractedId',
   title: 'title',
+  artist: 'artist',
+  duration: 'duration',
   smallImg: 'smallImg',
   bigImg: 'bigImg',
+  previewUrl: 'previewUrl',
   active: 'active',
   played: 'played',
   userId: 'userId',
@@ -192,7 +195,8 @@ exports.RoomMode = exports.$Enums.RoomMode = {
 
 exports.StreamType = exports.$Enums.StreamType = {
   Spotify: 'Spotify',
-  Youtube: 'Youtube'
+  Youtube: 'Youtube',
+  Itunes: 'Itunes'
 };
 
 exports.Prisma.ModelName = {

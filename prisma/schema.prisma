@@ -26,6 +26,7 @@ enum RoomMode {
 enum StreamType {
   Spotify
   Youtube
+  Itunes
 }
 
 model User {
@@ -62,8 +63,12 @@ model Stream {
   url         String
   extractedId String
   title       String     @default("")
+  artist      String?
+  duration    Int?
   smallImg    String     @default("")
   bigImg      String     @default("")
+  // Provider-hosted 30s audio preview (used by keyless providers, e.g. iTunes).
+  previewUrl  String?
   active      Boolean    @default(false)
   played      Boolean    @default(false)
   upvotes     Upvote[]
@@ -72,6 +77,9 @@ model Stream {
   roomId      String
   room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
+
+  // Speeds up duplicate detection when adding a track to a room's queue.
+  @@index([roomId, extractedId])
 }
 
 model Upvote {
